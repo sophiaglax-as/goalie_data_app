@@ -3,749 +3,693 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-  <title>Goalie Data - Fast Tap</title>
+  <title>Goalie Data | 入力</title>
   <style>
     :root{
-      --navy:#0b1b3a; --white:#ffffff; --yellow:#ffd400;
-      --danger:#ff4d4f; --ok:#29cc74; --muted: rgba(255,255,255,.72);
-      --card: rgba(255,255,255,.08);
+      --navy:#0b1b3a;
+      --white:#fff;
+      --muted:rgba(255,255,255,.75);
+      --line:rgba(255,255,255,.16);
+      --card:rgba(255,255,255,.08);
+      --btn:#ffd400;
+      --btnText:#0b1b3a;
+      --danger:#ff4d4f;
+      --ok:#34c759;
     }
-    *{ box-sizing:border-box; }
+    *{box-sizing:border-box}
     body{
       margin:0;
-      font-family: -apple-system, BlinkMacSystemFont, "Hiragino Kaku Gothic ProN", "Noto Sans JP", "Segoe UI", Roboto, Arial, sans-serif;
-      background: var(--navy);
-      color: var(--white);
-      padding: 12px 12px 24px;
+      font-family:-apple-system,BlinkMacSystemFont,"Hiragino Kaku Gothic ProN","Noto Sans JP","Segoe UI",Roboto,Arial,sans-serif;
+      background:var(--navy);
+      color:var(--white);
+      padding:12px 12px 24px;
     }
-    .app{ max-width: 560px; margin:0 auto; display:flex; flex-direction:column; gap:12px; }
-    .title{ display:flex; justify-content:space-between; align-items:flex-end; gap:10px; }
-    .title h1{ margin:0; font-size:20px; letter-spacing:.4px; }
-    .badge{ font-size:12px; color:var(--muted); }
-    .card{ background: var(--card); border:1px solid rgba(255,255,255,.12); border-radius:16px; padding:12px; }
-    .row{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
-    label{ font-size:12px; color:var(--muted); display:block; margin-bottom:6px; }
-    input, select, textarea{
+    .app{max-width:560px;margin:0 auto;display:flex;flex-direction:column;gap:12px}
+    .header{
+      position:sticky;top:0;z-index:5;
+      backdrop-filter: blur(10px);
+      background: linear-gradient(to bottom, rgba(11,27,58,.92), rgba(11,27,58,.70));
+      padding:10px 0 6px;
+    }
+    h1{font-size:18px;margin:0 0 6px}
+    .sub{font-size:12px;color:var(--muted);margin:0}
+    .card{
+      background:var(--card);
+      border:1px solid var(--line);
+      border-radius:16px;
+      padding:12px;
+    }
+    label{font-size:12px;color:var(--muted)}
+    select,input,textarea{
       width:100%;
-      background: rgba(255,255,255,.10);
-      color: var(--white);
-      border:1px solid rgba(255,255,255,.16);
-      border-radius:12px;
-      padding: 10px 12px;
+      background:rgba(255,255,255,.08);
+      border:1px solid var(--line);
+      color:var(--white);
+      border-radius:14px;
+      padding:12px 12px;
       font-size:16px;
       outline:none;
     }
-    textarea{ min-height: 64px; resize: vertical; }
-    button{
-      appearance:none; border:none; cursor:pointer;
-      border-radius:14px;
-      padding: 14px 14px;
+    textarea{min-height:72px;resize:vertical}
+    .row{display:flex;gap:10px;align-items:center}
+    .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    .btn{
+      width:100%;
+      background:var(--btn);
+      color:var(--btnText);
+      border:none;border-radius:16px;
+      padding:14px 14px;
+      font-weight:900;font-size:16px;
+      cursor:pointer;
+    }
+    .btn:disabled{opacity:.55;cursor:not-allowed}
+    .pill{
+      display:inline-flex;gap:8px;align-items:center;
+      padding:8px 10px;border-radius:999px;
+      border:1px solid var(--line);
+      background:rgba(255,255,255,.06);
+      font-size:12px;color:var(--muted);
+    }
+    .warn{color:#ffb3b3;font-size:12px;line-height:1.5}
+    .ok{color:#b7ffca;font-size:12px;line-height:1.5}
+    .hidden{display:none !important}
+
+    /* Result buttons */
+    .seg{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px}
+    .seg button{
+      border-radius:16px;
+      border:1px solid var(--line);
+      background:rgba(255,255,255,.06);
+      color:var(--white);
+      padding:14px 10px;
       font-size:16px;
-      font-weight: 700;
-      background: rgba(255,255,255,.12);
-      color: var(--white);
+      font-weight:900;
+      cursor:pointer;
     }
-    button.primary{ background: var(--yellow); color:#111; }
-    button.ghost{ background: rgba(255,255,255,.08); }
-    button.danger{ background: rgba(255,77,79,.22); color: #fff; border:1px solid rgba(255,77,79,.35);}
-    button.small{ padding:10px 12px; font-size:14px; border-radius:12px; }
-    .hint{ color:var(--muted); font-size:12px; line-height:1.4; }
-    .error{ background: rgba(255,77,79,.18); border:1px solid rgba(255,77,79,.35); padding:10px 12px; border-radius:14px; }
-    .ok{ background: rgba(41,204,116,.14); border:1px solid rgba(41,204,116,.30); padding:10px 12px; border-radius:14px; }
-    .sep{ height:1px; background: rgba(255,255,255,.12); margin: 6px 0; }
-
-    .tabs{ display:flex; gap:8px; overflow:auto; padding-bottom: 6px; }
-    .tab{
-      flex:0 0 auto;
-      padding:10px 12px;
-      border-radius: 999px;
-      background: rgba(255,255,255,.10);
-      border:1px solid rgba(255,255,255,.12);
-      font-size:14px;
-      font-weight: 800;
-      white-space: nowrap;
+    .seg button.active{
+      background:rgba(255,212,0,.25);
+      border-color:rgba(255,212,0,.5);
     }
-    .tab.active{ background: var(--yellow); color:#111; border-color: transparent; }
 
-    .stepTitle{ display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:8px; }
-    .stepTitle h2{ margin:0; font-size:16px; }
-    .pill{ font-size:12px; color: var(--muted); }
-    .grid3{ display:grid; grid-template-columns:repeat(3, 1fr); gap:10px; }
-    .grid6{ display:grid; grid-template-columns:repeat(3, 1fr); gap:10px; }
-    .grid9{ display:grid; grid-template-columns:repeat(3, 1fr); gap:10px; }
-    .btnOpt{
-      padding: 18px 12px;
-      border-radius: 16px;
-      background: rgba(255,255,255,.10);
-      border: 1px solid rgba(255,255,255,.14);
+    /* Course 3×3 */
+    .board{
+      display:grid;
+      grid-template-columns:repeat(3,1fr);
+      gap:10px;
+      margin-top:10px;
+    }
+    .cellBtn{
+      aspect-ratio:1/1;
+      border-radius:16px;
+      border:1px solid var(--line);
+      background:rgba(255,255,255,.06);
+      color:var(--white);
       font-size:18px;
       font-weight:900;
+      cursor:pointer;
     }
-    .btnOpt.on{ background: var(--yellow); color:#111; border-color: transparent; }
+    .cellBtn:active{transform:scale(.98)}
 
-    .bottomBar{
-      position: sticky; bottom: 10px;
-      display:flex; gap:10px;
-      padding: 10px;
-      background: rgba(11,27,58,.72);
-      backdrop-filter: blur(8px);
-      border-radius: 18px;
-      border:1px solid rgba(255,255,255,.12);
-    }
-    .bottomBar button{ flex:1; }
-
-    .modalBack{
-      position: fixed; inset:0;
-      background: rgba(0,0,0,.55);
-      display:none;
-      align-items:flex-end;
-      justify-content:center;
-      padding: 12px;
-    }
-    .modal{
-      width:100%;
-      max-width: 560px;
-      background: rgba(11,27,58,.98);
-      border:1px solid rgba(255,255,255,.14);
-      border-radius: 20px;
-      padding: 12px;
-    }
-    .modalHeader{ display:flex; justify-content:space-between; align-items:center; gap:10px; }
-    .modalHeader h3{ margin:0; font-size:16px; }
-    .list{ display:flex; flex-direction:column; gap:8px; margin-top:10px; }
-    .listItem{
-      background: rgba(255,255,255,.08);
-      border:1px solid rgba(255,255,255,.12);
-      border-radius: 14px;
-      padding: 10px 12px;
-      display:flex;
-      justify-content:space-between;
+    /* Shooter Area 3×2 (5-3-1 / 6-4-2) */
+    .areaGrid{
+      display:grid;
+      grid-template-columns:repeat(3,1fr);
       gap:10px;
-      align-items:center;
+      margin-top:10px;
     }
-    .mono{ font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; font-size:12px; color: var(--muted); }
-    .chips{ display:flex; flex-wrap:wrap; gap:8px; }
-    .chip{
-      padding:8px 10px;
-      border-radius: 999px;
-      border:1px solid rgba(255,255,255,.14);
-      background: rgba(255,255,255,.08);
-      font-size: 13px;
-      font-weight: 800;
+    .areaBtn{
+      border-radius:16px;
+      border:1px solid var(--line);
+      background:rgba(255,255,255,.06);
+      color:var(--white);
+      padding:14px 10px;
+      font-size:16px;
+      font-weight:900;
+      cursor:pointer;
     }
-    .chip .x{ margin-left:8px; opacity:.8; cursor:pointer; }
+    .areaBtn.active{
+      background:rgba(255,212,0,.25);
+      border-color:rgba(255,212,0,.5);
+    }
+
+    /* Goalie Position (Left/Center/Right) */
+    .posGrid{
+      display:grid;
+      grid-template-columns:repeat(3,1fr);
+      gap:10px;
+      margin-top:10px;
+    }
+    .posBtn{
+      border-radius:16px;
+      border:1px solid var(--line);
+      background:rgba(255,255,255,.06);
+      color:var(--white);
+      padding:14px 10px;
+      font-size:16px;
+      font-weight:900;
+      cursor:pointer;
+    }
+    .posBtn.active{
+      background:rgba(255,212,0,.25);
+      border-color:rgba(255,212,0,.5);
+    }
+
   </style>
 </head>
 <body>
   <div class="app">
-    <div class="title">
-      <h1>Goalie Data</h1>
-      <div class="badge" id="envBadge">env: -</div>
+    <div class="header">
+      <h1>ゴーリーデータ｜入力</h1>
+      <p class="sub">メニュー → セッション → ゴーリー → シューターエリア → 結果 → コース9 → 送信</p>
     </div>
 
-    <div id="msgBox" class="card" style="display:none;"></div>
+    <div class="card">
+      <div class="row" style="justify-content:space-between">
+        <div class="pill" id="statusPill">● 読み込み中…</div>
+        <div class="pill" id="envPill">API</div>
+      </div>
+      <div id="msg" class="warn" style="margin-top:8px;display:none"></div>
+      <div id="msgOk" class="ok" style="margin-top:8px;display:none"></div>
+    </div>
 
-    <!-- Setup -->
-    <div id="screenSetup" class="card">
-      <div class="row" style="gap:12px;">
-        <div style="flex:1; min-width:160px;">
+    <!-- ① Menu + Session -->
+    <div class="card">
+      <label>① メニュー選択</label>
+      <select id="menuSelect"></select>
+
+      <div class="grid2" style="margin-top:10px">
+        <div>
           <label>日付</label>
-          <input id="inpDate" type="date" />
+          <input type="date" id="sessionDate" />
         </div>
-        <div style="flex:2; min-width:180px;">
-          <label>練習タイトル（必須）</label>
-          <input id="inpTitle" placeholder="例：夕練 / 6on6 / vs前" />
+        <div>
+          <label>タイトル（任意）</label>
+          <input type="text" id="sessionTitle" placeholder="例：午前練 / 6on6前 など" />
         </div>
       </div>
 
-      <div style="margin-top:10px;">
-        <label>メニュー（必須）</label>
-        <select id="selMenu"></select>
-        <div class="hint" style="margin-top:6px;">menus の isActive=TRUE のみ表示</div>
-      </div>
-
-      <div style="margin-top:10px;">
+      <div style="margin-top:10px">
         <label>メモ（任意）</label>
-        <textarea id="inpNote" placeholder="任意メモ"></textarea>
+        <textarea id="sessionNote" placeholder="補足"></textarea>
       </div>
 
-      <div class="sep"></div>
+      <button class="btn" id="createSessionBtn" style="margin-top:10px">セッション作成（この条件で入力開始）</button>
 
-      <div>
-        <div class="row" style="justify-content:space-between;">
-          <div>
-            <div style="font-weight:900;">今日の参加ゴーリー（複数）</div>
-            <div class="hint">練習中もあとから追加できます</div>
-          </div>
-          <button class="small ghost" id="btnPickGoalies">選ぶ</button>
-        </div>
-        <div style="margin-top:10px;">
-          <div class="chips" id="pickedGoalies"></div>
-          <div class="hint" id="pickedHint" style="margin-top:8px;">未選択（まず「選ぶ」から追加）</div>
-        </div>
+      <div style="margin-top:10px">
+        <div class="pill" id="sessionPill">session：未作成</div>
+        <div class="pill" id="menuPill" style="margin-left:8px">menu：未選択</div>
       </div>
 
-      <div class="sep"></div>
-
-      <div class="row">
-        <button class="primary" id="btnStart">入力開始（4ステップ）</button>
-        <button class="ghost" id="btnMaster">ゴーリー追加（マスタ）</button>
-      </div>
-      <div class="hint" style="margin-top:8px;">
-        ※GitHub Pages（ログイン不要）→ GAS(JSONP) → スプレッドシートへ保存
+      <div class="warn" style="margin-top:8px">
+        ※この版は <b>shots に menuId / shooterArea を必ず保存</b>します（後で集計が壊れない）。
       </div>
     </div>
 
-    <!-- Input -->
-    <div id="screenInput" style="display:none;">
-      <div class="card">
-        <div class="row" style="justify-content:space-between; align-items:flex-start;">
-          <div>
-            <div style="font-weight:900;" id="sessionLabel">Session: -</div>
-            <div class="mono" id="sessionMeta">-</div>
-          </div>
-          <button class="small ghost" id="btnBackHome">ホーム</button>
-        </div>
-
-        <div class="sep"></div>
-
-        <div class="row" style="justify-content:space-between;">
-          <div style="font-weight:900;">ゴーリー切替</div>
-          <button class="small ghost" id="btnAddGoalieInSession">+途中追加</button>
-        </div>
-        <div class="tabs" id="goalieTabs"></div>
-
-        <div class="sep"></div>
-
-        <div class="row" style="justify-content:space-between;">
-          <div>
-            <div style="font-weight:900;">連打モード</div>
-            <div class="hint">ON：立ち位置/エリア/結果を保持 → コースだけ連打</div>
-          </div>
-          <button class="small" id="btnRapid">OFF</button>
-        </div>
-      </div>
-
-      <div class="card">
-        <div class="stepTitle">
-          <h2>Step 1：ゴーリー立ち位置</h2>
-          <div class="pill" id="pill1">未選択</div>
-        </div>
-        <div class="grid3">
-          <button class="btnOpt" data-step="position" data-val="left">左</button>
-          <button class="btnOpt" data-step="position" data-val="center">中央</button>
-          <button class="btnOpt" data-step="position" data-val="right">右</button>
-        </div>
-      </div>
-
-      <div class="card">
-        <div class="stepTitle">
-          <h2>Step 2：シューターエリア（扇6）</h2>
-          <div class="pill" id="pill2">未選択</div>
-        </div>
-        <div class="grid6">
-          <button class="btnOpt" data-step="area" data-val="1">1</button>
-          <button class="btnOpt" data-step="area" data-val="2">2</button>
-          <button class="btnOpt" data-step="area" data-val="3">3</button>
-          <button class="btnOpt" data-step="area" data-val="4">4</button>
-          <button class="btnOpt" data-step="area" data-val="5">5</button>
-          <button class="btnOpt" data-step="area" data-val="6">6</button>
-        </div>
-      </div>
-
-      <div class="card">
-        <div class="stepTitle">
-          <h2>Step 3：結果（成功/セーブ）</h2>
-          <div class="pill" id="pill3">未選択</div>
-        </div>
-        <div class="grid3">
-          <button class="btnOpt" data-step="result" data-val="goal">成功</button>
-          <button class="btnOpt" data-step="result" data-val="save">セーブ</button>
-          <button class="btnOpt ghost" id="btnClearStep3">クリア</button>
-        </div>
-      </div>
-
-      <div class="card">
-        <div class="stepTitle">
-          <h2>Step 4：コース（枠内9）</h2>
-          <div class="pill" id="pill4">押すと送信</div>
-        </div>
-        <div class="grid9">
-          <button class="btnOpt" data-step="course" data-val="1">1</button>
-          <button class="btnOpt" data-step="course" data-val="2">2</button>
-          <button class="btnOpt" data-step="course" data-val="3">3</button>
-          <button class="btnOpt" data-step="course" data-val="4">4</button>
-          <button class="btnOpt" data-step="course" data-val="5">5</button>
-          <button class="btnOpt" data-step="course" data-val="6">6</button>
-          <button class="btnOpt" data-step="course" data-val="7">7</button>
-          <button class="btnOpt" data-step="course" data-val="8">8</button>
-          <button class="btnOpt" data-step="course" data-val="9">9</button>
-        </div>
-
-        <div style="margin-top:10px;">
-          <label>メモ（任意）</label>
-          <input id="inpShotNote" placeholder="例：逆足/DFプレッシャー等（任意）" />
-        </div>
-      </div>
-
-      <div class="bottomBar">
-        <button class="ghost" id="btnUndoOpen">Undo</button>
-        <button class="danger" id="btnReset">リセット</button>
-      </div>
+    <!-- ② Goalie -->
+    <div class="card">
+      <label>② ゴーリー選択</label>
+      <select id="goalieSelect"></select>
     </div>
+
+    <!-- ③ Goalie Position -->
+     <div class="card">
+      <label>③ ゴーリー位置（左・中央・右）</label>
+      <div class="posGrid" id="posGrid"></div>
+    </div>
+
+    <!-- ③ Shooter Area (復活) -->
+    <div class="card">
+      <label>③ シューターエリア（1〜6）</label>
+      <div class="areaGrid" id="areaGrid"></div>
+      <div class="warn" style="margin-top:8px">並び：上段 5-3-1 / 下段 6-4-2</div>
+    </div>
+
+    <!-- ④ Result -->
+    <div class="card">
+      <label>④ 結果</label>
+      <div class="seg">
+        <button id="btnSave" type="button">セーブ</button>
+        <button id="btnGoal" type="button">成功</button>
+      </div>
+      <div class="warn" style="margin-top:8px">※「枠外」は今回は記録しない前提（成功/セーブのみ）。</div>
+    </div>
+
+    <!-- ⑤ Course 3×3 -->
+    <div class="card">
+      <label>⑤ コース（枠内 3×3 / 1〜9）</label>
+      <div class="board" id="board"></div>
+      <div class="warn" style="margin-top:8px">左上=1 … 右下=9</div>
+    </div>
+
+    <button class="btn" id="sendBtn" type="button">送信</button>
+    <button id="btnUndoLast" type="button">直前取り消し</button>
   </div>
 
-  <!-- Modal: pick goalies -->
-  <div class="modalBack" id="modalPick">
-    <div class="modal">
-      <div class="modalHeader">
-        <h3>参加ゴーリーを選択</h3>
-        <button class="small ghost" id="btnClosePick">閉じる</button>
-      </div>
-      <div class="hint">複数選択OK。セッション開始後は「閉じる」で途中追加として反映されます。</div>
-      <div class="list" id="pickList"></div>
+  <div class="card">
+    <label>検索して取り消し（期間 / ゴーリー / メニュー）</label>
+  
+    <div class="row" style="margin-top:10px">
+      <input id="fStart" type="date">
+      <input id="fEnd" type="date">
     </div>
+  
+    <div class="row" style="margin-top:10px">
+      <select id="fGoalie"></select>
+      <select id="fMenu"></select>
+    </div>
+  
+    <div class="row" style="margin-top:10px">
+      <button class="btn" id="btnSearch" type="button">検索</button>
+    </div>
+  
+    <div id="shotList" style="margin-top:10px"></div>
   </div>
 
-  <!-- Modal: add goalie -->
-  <div class="modalBack" id="modalAddGoalie">
-    <div class="modal">
-      <div class="modalHeader">
-        <h3>ゴーリー追加（マスタ）</h3>
-        <button class="small ghost" id="btnCloseAddGoalie">閉じる</button>
-      </div>
-      <div style="margin-top:10px;">
-        <label>名前</label>
-        <input id="inpNewGoalieName" placeholder="例：田中" />
-      </div>
-      <div class="row" style="margin-top:10px;">
-        <button class="primary" id="btnCreateGoalie">追加</button>
-        <button class="ghost" id="btnCreateGoalieCancel">キャンセル</button>
-      </div>
-      <div class="hint" style="margin-top:8px;">追加後、選択リストに即反映します。</div>
-    </div>
-  </div>
+  <script>
+    // ====== 設定：GAS WebアプリURL（/exec）を貼る ======
+    const SERVICE_URL = "https://script.google.com/macros/s/AKfycbz-KYeLb8G-7m0REzN-p0I-YgQJdpfFDO8g8ZEHIN3ahxedQBinadPyMbBCq8jZzDOcjQ/exec";
 
-  <!-- Modal: undo -->
-  <div class="modalBack" id="modalUndo">
-    <div class="modal">
-      <div class="modalHeader">
-        <h3>Undo（直近10件）</h3>
-        <button class="small ghost" id="btnCloseUndo">閉じる</button>
-      </div>
-      <div class="hint">1件ずつ取り消し。undo_log にバックアップ保存します。</div>
-      <div class="list" id="undoList"></div>
-    </div>
-  </div>
+    const $ = (id)=>document.getElementById(id);
 
-<script>
-  // ====== SET THIS ======
-  const SERVICE_URL = "https://script.google.com/macros/s/AKfycbzRtLXWuSoPFiMSleXa99ySfX04zCix-8MT8lY9FjqcVftFLqpXCsc-z33tc7OzGd1MvA/exec";
-  // ======================
+    // ✅ A：state に shooterArea を追加
+    const state = {
+      sessionId: "",
+      menuId: "",
+      goalieId: "",
+      goaliePos: "",   // ★追加
+      shooterArea: 0, // ★追加
+      result: "",     // "save" | "goal"
+      course9: 0
+    };
 
-  // ---- JSONP API (CORS回避) ----
-  function api(action, payload = {}) {
-    return new Promise((resolve, reject) => {
-      const cb = "cb_" + Math.random().toString(36).slice(2);
-      const qs = new URLSearchParams({ action, callback: cb });
+    function setStatus(t){ $("statusPill").textContent = "● " + t; }
+    function showMsg(text){
+      $("msgOk").style.display = "none";
+      $("msgOk").textContent = "";
+      $("msg").style.display = "block";
+      $("msg").textContent = text;
+    }
+    function showNg(text){ showMsg(text); 
+    }
+    function showOk(text){
+      $("msg").style.display = "none";
+      $("msg").textContent = "";
+      $("msgOk").style.display = "block";
+      $("msgOk").textContent = text;
+    }
+    function clearMsg(){
+      $("msg").style.display = "none";
+      $("msg").textContent = "";
+      $("msgOk").style.display = "none";
+      $("msgOk").textContent = "";
+    }
 
-      Object.entries(payload).forEach(([k, v]) => {
-        if (v === undefined || v === null) return;
-        qs.set(k, String(v));
+    async function apiGet(params){
+      const url = new URL(SERVICE_URL);
+      Object.entries(params).forEach(([k,v]) => url.searchParams.set(k, v));
+      const res = await fetch(url.toString(), { method:"GET" });
+      const text = await res.text();
+      let json;
+      try{ json = JSON.parse(text); }
+      catch(e){ throw new Error("JSON parse failed: " + text.slice(0,140)); }
+      if(!json.ok) throw new Error(json.error || "API error");
+      return json;
+    }
+
+    async function apiGetJSON(params){
+  const url = new URL(SERVICE_URL);
+  Object.entries(params).forEach(([k,v]) => url.searchParams.set(k, v));
+  const res = await fetch(url.toString(), { method:"GET" });
+  const text = await res.text();
+  let json;
+  try{ json = JSON.parse(text); }
+  catch(e){ throw new Error("JSON parse failed: " + text.slice(0,140)); }
+  if(!json.ok) throw new Error(json.error || "API error");
+  return json;
+}
+
+    async function apiPost(payload){
+      const res = await fetch(SERVICE_URL, {
+        method:"POST",
+        headers: { "Content-Type":"application/json" },
+        body: JSON.stringify(payload)
       });
+      const text = await res.text();
+      let json;
+      try{ json = JSON.parse(text); }
+      catch(e){ throw new Error("JSON parse failed: " + text.slice(0,140)); }
+      if(!json.ok) throw new Error(json.error || "API error");
+      return json;
+    }
 
-      const url = SERVICE_URL + "?" + qs.toString();
+    function isoNow(){ return new Date().toISOString(); }
 
-      window[cb] = (data) => {
-        cleanup();
-        if (!data || data.ok !== true) {
-          reject(new Error((data && data.error) ? data.error : "API error"));
-        } else {
-          resolve(data);
-        }
-      };
+    function setActiveResult(val){
+      state.result = val;
+      $("btnSave").classList.toggle("active", val === "save");
+      $("btnGoal").classList.toggle("active", val === "goal");
+    }
 
-      const script = document.createElement("script");
-      script.src = url;
-      script.async = true;
-
-      script.onerror = () => {
-        cleanup();
-        reject(new Error("JSONP load failed"));
-      };
-
-      function cleanup(){
-        try { delete window[cb]; } catch(e) { window[cb] = undefined; }
-        script.remove();
+    function buildBoard(){
+      const b = $("board");
+      b.innerHTML = "";
+      for(let i=1;i<=9;i++){
+        const btn = document.createElement("button");
+        btn.className = "cellBtn";
+        btn.type = "button";
+        btn.textContent = i;
+        btn.addEventListener("click", ()=>{
+          state.course9 = i;
+          showOk("コース選択：#" + i + "（送信で確定）");
+        });
+        b.appendChild(btn);
       }
-
-      document.body.appendChild(script);
-    });
-  }
-
-  // ---- state ----
-  const state = {
-    menus: [],
-    goalies: [],
-    pickedGoalies: new Map(), // goalieId -> {goalieId,name}
-    sessionId: null,
-    session: null,
-    sessionGoalies: [],
-    activeGoalieId: null,
-    rapid: false,
-    step: { position:null, area:null, result:null },
-    menuId: null,
-  };
-
-  const $ = (id) => document.getElementById(id);
-
-  function showMsg(type, text){
-    const box = $("msgBox");
-    box.className = type === "error" ? "error" : "ok";
-    box.style.display = "block";
-    box.textContent = text;
-    setTimeout(()=>{ box.style.display = "none"; }, 2400);
-  }
-
-  function todayStr(){
-    const d = new Date();
-    const y = d.getFullYear();
-    const m = String(d.getMonth()+1).padStart(2,"0");
-    const da = String(d.getDate()).padStart(2,"0");
-    return `${y}-${m}-${da}`;
-  }
-
-  function setScreen(which){
-    $("screenSetup").style.display = which === "setup" ? "block" : "none";
-    $("screenInput").style.display = which === "input" ? "block" : "none";
-  }
-
-  function renderPicked(){
-    const chips = $("pickedGoalies");
-    chips.innerHTML = "";
-    const arr = Array.from(state.pickedGoalies.values());
-    $("pickedHint").style.display = arr.length ? "none" : "block";
-
-    arr.forEach(g=>{
-      const div = document.createElement("div");
-      div.className = "chip";
-      div.textContent = g.name;
-
-      const x = document.createElement("span");
-      x.className = "x";
-      x.textContent = "×";
-      x.onclick = () => { state.pickedGoalies.delete(g.goalieId); renderPicked(); };
-      div.appendChild(x);
-      chips.appendChild(div);
-    });
-  }
-
-  function renderMenus(){
-    const sel = $("selMenu");
-    sel.innerHTML = "";
-    state.menus.forEach(m=>{
-      const opt = document.createElement("option");
-      opt.value = m.menuId;
-      opt.textContent = m.menuName;
-      sel.appendChild(opt);
-    });
-  }
-
-  function openModal(id){ $(id).style.display="flex"; }
-  function closeModal(id){ $(id).style.display="none"; }
-
-  async function loadMaster(){
-    $("envBadge").textContent = "env: connecting...";
-    await api("ping", {});
-    const menus = await api("listMenus", {});
-    const goalies = await api("listGoalies", {});
-    state.menus = menus.menus || [];
-    state.goalies = goalies.goalies || [];
-    renderMenus();
-    $("envBadge").textContent = `env: ok / menus:${state.menus.length} goalies:${state.goalies.length}`;
-  }
-
-  function renderPickList(){
-    const list = $("pickList");
-    list.innerHTML = "";
-    state.goalies.forEach(g=>{
-      const item = document.createElement("div");
-      item.className = "listItem";
-      const left = document.createElement("div");
-      left.innerHTML = `<div style="font-weight:900;">${g.name}</div><div class="mono">${g.goalieId}</div>`;
-      const btn = document.createElement("button");
-      btn.className = "small";
-      const picked = state.pickedGoalies.has(g.goalieId);
-      btn.textContent = picked ? "選択済" : "追加";
-      btn.classList.toggle("primary", !picked);
-      btn.onclick = () => {
-        if (!state.pickedGoalies.has(g.goalieId)) state.pickedGoalies.set(g.goalieId, g);
-        renderPickList();
-        renderPicked();
-      };
-      item.appendChild(left);
-      item.appendChild(btn);
-      list.appendChild(item);
-    });
-  }
-
-  async function startSession(){
-    const date = $("inpDate").value;
-    const title = $("inpTitle").value.trim();
-    const note = $("inpNote").value.trim();
-    const menuId = $("selMenu").value;
-
-    if (!title) return showMsg("error", "タイトルが未入力です");
-    if (!menuId) return showMsg("error", "メニューを選んでください");
-    if (state.pickedGoalies.size === 0) return showMsg("error", "参加ゴーリーを1人以上選んでください");
-
-    const res = await api("createSession", { date, title, note });
-    state.sessionId = res.sessionId;
-    state.menuId = menuId;
-    state.session = { date, title, note, menuId };
-
-    for (const g of state.pickedGoalies.values()){
-      await api("addGoalieToSession", { sessionId: state.sessionId, goalieId: g.goalieId, addedBy: "web" });
     }
 
-    await refreshSessionGoalies();
-    state.activeGoalieId = state.sessionGoalies[0]?.goalieId || null;
+    // ✅ D：シューターエリア生成（指定並び）
+    function buildShooterArea(){
+      const order = [5,3,1, 6,4,2]; // ★指定並び
+      const g = $("areaGrid");
+      g.innerHTML = "";
 
-    $("sessionLabel").textContent = `Session: ${date} / ${title}`;
-    $("sessionMeta").textContent = `sessionId=${state.sessionId} / menuId=${state.menuId}`;
+      order.forEach(n=>{
+        const b = document.createElement("button");
+        b.type = "button";
+        b.className = "areaBtn";
+        b.textContent = n;
 
-    setScreen("input");
-    renderTabs();
-    renderStepPills();
-    syncButtons();
-    showMsg("ok", "セッション開始！");
-  }
+        b.addEventListener("click", ()=>{
+          state.shooterArea = n;
 
-  async function refreshSessionGoalies(){
-    const res = await api("listSessionGoalies", { sessionId: state.sessionId });
-    state.sessionGoalies = res.goalies || [];
-  }
+          // active付け替え
+          [...g.querySelectorAll(".areaBtn")].forEach(x=>x.classList.remove("active"));
+          b.classList.add("active");
 
-  function renderTabs(){
-    const tabs = $("goalieTabs");
-    tabs.innerHTML = "";
-    state.sessionGoalies.forEach(g=>{
-      const b = document.createElement("button");
-      b.className = "tab" + (g.goalieId === state.activeGoalieId ? " active" : "");
-      b.textContent = g.name;
-      b.onclick = () => { state.activeGoalieId = g.goalieId; renderTabs(); };
-      tabs.appendChild(b);
-    });
-  }
+          showOk("シューターエリア：#" + n);
+        });
 
-  function renderStepPills(){
-    $("pill1").textContent = state.step.position ? state.step.position : "未選択";
-    $("pill2").textContent = state.step.area ? `エリア${state.step.area}` : "未選択";
-    $("pill3").textContent = state.step.result ? (state.step.result==="goal"?"成功":"セーブ") : "未選択";
-  }
-
-  function syncButtons(){
-    document.querySelectorAll(".btnOpt[data-step='position']").forEach(btn=>{
-      btn.classList.toggle("on", btn.dataset.val === state.step.position);
-    });
-    document.querySelectorAll(".btnOpt[data-step='area']").forEach(btn=>{
-      btn.classList.toggle("on", Number(btn.dataset.val) === state.step.area);
-    });
-    document.querySelectorAll(".btnOpt[data-step='result']").forEach(btn=>{
-      btn.classList.toggle("on", btn.dataset.val === state.step.result);
-    });
-    $("btnRapid").textContent = state.rapid ? "ON" : "OFF";
-    $("btnRapid").classList.toggle("primary", state.rapid);
-  }
-
-  function resetAllSteps(){
-    state.step.position = null;
-    state.step.area = null;
-    state.step.result = null;
-    $("inpShotNote").value = "";
-    renderStepPills();
-    syncButtons();
-  }
-
-  function resetOnlyCourse(){
-    $("inpShotNote").value = "";
-  }
-
-  async function sendShot(course9){
-    if (!state.sessionId) return showMsg("error", "セッションがありません");
-    if (!state.menuId) return showMsg("error", "menuIdがありません");
-    if (!state.activeGoalieId) return showMsg("error", "ゴーリーが選ばれていません");
-
-    if (!state.step.position) return showMsg("error", "Step1（立ち位置）を選んでください");
-    if (!state.step.area) return showMsg("error", "Step2（エリア）を選んでください");
-    if (!state.step.result) return showMsg("error", "Step3（結果）を選んでください");
-
-    const note = $("inpShotNote").value.trim();
-
-    try{
-      await api("addShot", {
-        sessionId: state.sessionId,
-        menuId: state.menuId,
-        goalieId: state.activeGoalieId,
-        position: state.step.position,
-        shooterArea: state.step.area,
-        result: state.step.result,
-        course9: Number(course9),
-        note
+        g.appendChild(b);
       });
-
-      if (state.rapid) resetOnlyCourse();
-      else resetAllSteps();
-
-      showMsg("ok", "送信OK");
-    }catch(e){
-      console.error(e);
-      showMsg("error", "送信失敗：URL/権限/シート列名を確認");
     }
+
+    function buildGoaliePos(){
+  const order = [
+    { v:"L", label:"左" },
+    { v:"C", label:"中央" },
+    { v:"R", label:"右" },
+  ];
+  const g = $("posGrid");
+  g.innerHTML = "";
+
+  order.forEach(({v,label})=>{
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "posBtn";
+    b.textContent = label;
+
+    b.addEventListener("click", ()=>{
+      state.goaliePos = v;
+
+      [...g.querySelectorAll(".posBtn")].forEach(x=>x.classList.remove("active"));
+      b.classList.add("active");
+
+      showOk("ゴーリー位置：" + label);
+    });
+
+    g.appendChild(b);
+  });
+}
+
+    function syncPills(){
+      $("sessionPill").textContent = state.sessionId ? `session：${state.sessionId.slice(0,8)}…` : "session：未作成";
+      $("menuPill").textContent = state.menuId ? `menu：${state.menuId}` : "menu：未選択";
+    }
+
+    function todayYmd(){
+      const d = new Date();
+      const y = d.getFullYear();
+      const m = String(d.getMonth()+1).padStart(2,"0");
+      const day = String(d.getDate()).padStart(2,"0");
+      return `${y}-${m}-${day}`;
+    }
+
+    async function undoLast(){
+  try{
+    if(!state.sessionId) throw new Error("sessionIdが未設定です");
+
+    const res = await apiGetJSON({ action:"getRecentShots", sessionId: state.sessionId, limit: 1 });
+    const shot = (res.shots || [])[0];
+    if(!shot) { showMsg("取り消せるデータがありません"); return; }
+
+    await apiGetJSON({ action:"deleteShot", shotId: shot.shotId, deletedBy: "web" });
+    showOk(`直前取り消しOK（${shot.shotId.slice(0,8)}…）`);
+  }catch(e){
+    showMsg(String(e.message || e));
   }
+}
 
-  async function openUndo(){
-    const list = $("undoList");
-    list.innerHTML = "";
-    openModal("modalUndo");
+    async function init(){
+      clearMsg();
 
-    try{
-      const res = await api("getRecentShots", { sessionId: state.sessionId, limit: 10 });
-      const shots = res.shots || [];
-      if (!shots.length){
-        list.innerHTML = `<div class="hint" style="margin-top:10px;">まだショットがありません</div>`;
+      buildBoard();
+      buildShooterArea(); // ✅ 追加
+      buildBoard();
+      buildGoaliePos();   // ★追加
+      buildShooterArea();
+
+      if(!SERVICE_URL || SERVICE_URL.includes("PASTE_")){
+        $("envPill").textContent = "⚠️ SERVICE_URL未設定";
+        setStatus("準備OK（URL未設定）");
+        $("sessionDate").value = todayYmd();
+        syncPills();
         return;
       }
 
-      shots.forEach(s=>{
-        const item = document.createElement("div");
-        item.className = "listItem";
+      $("envPill").textContent = "✅ 接続先OK";
+      setStatus("マスタ読込…");
 
-        const left = document.createElement("div");
-        const r = s.result==="goal"?"成功":"セーブ";
-        left.innerHTML = `<div style="font-weight:900;">${s.goalieName} / ${r} / コース${s.course9}</div>
-                          <div class="mono">${s.shotId}</div>`;
+      await apiGet({ action:"ping" });
 
-        const btn = document.createElement("button");
-        btn.className = "small danger";
-        btn.textContent = "取り消す";
-        btn.onclick = async ()=>{
-          if (!confirm("この1件を取り消しますか？")) return;
-          await api("undoShot", { shotId: s.shotId, deletedBy: "web" });
-          showMsg("ok", "取り消しました");
-          closeModal("modalUndo");
-        };
+      const [menus, goalies] = await Promise.all([
+        apiGet({ action:"getMenus" }),
+        apiGet({ action:"getGoalies" }),
+      ]);
 
-        item.appendChild(left);
-        item.appendChild(btn);
-        list.appendChild(item);
+      // menus
+      const ms = $("menuSelect");
+      ms.innerHTML = `<option value="">メニューを選択</option>`;
+      (menus.menus || []).forEach(m=>{
+        const opt = document.createElement("option");
+        opt.value = m.menuId;
+        opt.textContent = `${m.menuName}${m.groupType ? `（${m.groupType}）` : ""}`;
+        ms.appendChild(opt);
       });
-    }catch(e){
-      list.innerHTML = `<div class="error">Undo取得に失敗：${String(e)}</div>`;
+
+      ms.addEventListener("change", ()=>{
+        state.menuId = ms.value;
+        syncPills();
+      });
+
+      // goalies
+      const gs = $("goalieSelect");
+      gs.innerHTML = `<option value="">ゴーリーを選択</option>`;
+      (goalies.goalies || []).forEach(g=>{
+        const opt = document.createElement("option");
+        opt.value = g.goalieId;
+        opt.textContent = g.name;
+        gs.appendChild(opt);
+      });
+
+      gs.addEventListener("change", ()=>{
+        state.goalieId = gs.value;
+      });
+
+      const fg = $("fGoalie");
+      fg.innerHTML = `<option value="">（全ゴーリー）</option>`;
+      (goalies.goalies || []).forEach(g=>{
+        const opt = document.createElement("option");
+        opt.value = g.goalieId;
+        opt.textContent = g.name;
+        fg.appendChild(opt);
+      });
+
+      const fm = $("fMenu");
+      fm.innerHTML = `<option value="">（全メニュー）</option>`;
+      (menus.menus || []).forEach(m=>{
+        const opt = document.createElement("option");
+        opt.value = m.menuId;
+        opt.textContent = `${m.menuName}${m.groupType ? `（${m.groupType}）` : ""}`;
+        fm.appendChild(opt);
+      });
+
+      // default date
+      $("sessionDate").value = todayYmd();
+
+      // result buttons
+      $("btnSave").addEventListener("click", ()=>setActiveResult("save"));
+      $("btnGoal").addEventListener("click", ()=>setActiveResult("goal"));
+      setActiveResult("save");
+
+      // create session
+      $("createSessionBtn").addEventListener("click", async ()=>{
+        clearMsg();
+        try{
+          if(!state.menuId) throw new Error("メニューを選択してください");
+          const date = $("sessionDate").value;
+          if(!date) throw new Error("日付を入力してください");
+
+          setStatus("セッション作成中…");
+          $("createSessionBtn").disabled = true;
+
+          const json = await apiGetJSON({
+            action: "createSession",
+            date,
+            title: $("sessionTitle").value || "",
+            menuId: state.menuId,
+            note: $("sessionNote").value || ""
+          });
+
+          state.sessionId = json.sessionId;
+          syncPills();
+          showOk("セッション作成OK。入力を開始できます。");
+          setStatus("準備OK");
+        }catch(e){
+          showMsg(e.message || String(e));
+          setStatus("エラー");
+        }finally{
+          $("createSessionBtn").disabled = false;
+        }
+      });
+
+      // send
+      $("sendBtn").addEventListener("click", async ()=>{
+        clearMsg();
+        try{
+          if(!state.sessionId) throw new Error("先にセッションを作成してください");
+          if(!state.menuId) throw new Error("メニューが未選択です（menuIdが必要）");
+          if(!state.goalieId) throw new Error("ゴーリーを選択してください");
+
+          // ✅ E：シューターエリア必須チェック
+          if(!(state.shooterArea >= 1 && state.shooterArea <= 6)) {
+            throw new Error("シューターエリア（1〜6）を選択してください");
+          }
+
+          if(!(state.result === "save" || state.result === "goal")) throw new Error("結果を選択してください");
+          if(!(state.course9 >= 1 && state.course9 <= 9)) throw new Error("コース（1〜9）を選択してください");
+
+          setStatus("送信中…");
+          $("sendBtn").disabled = true;
+
+          const payload = {
+            action: "addShot",
+            timestamp: isoNow(),
+            sessionId: state.sessionId,
+            menuId: state.menuId,             // ★shots.menuId に入る
+            goalieId: state.goalieId,
+            goaliePos: state.goaliePos,  
+            shooterArea: state.shooterArea,   // ★追加（shots.shooterArea に入る）
+            result: state.result,
+            course9: state.course9,
+            isInFrame: true,
+            inGoal: (state.result === "goal"),
+            note: ""
+          };
+
+           const json= await apiGetJSON(payload);
+          showOk(`送信OK（shotId: ${json.shotId.slice(0,8)}…）`);
+
+          // 次の入力へ：コースだけリセット（必要ならresultもリセットOK）
+          state.course9 = 0;
+          setStatus("準備OK");
+        }catch(e){
+          showMsg(e.message || String(e));
+          setStatus("エラー");
+        }finally{
+          $("sendBtn").disabled = false;
+        }
+      });
+
+      syncPills();
+      setStatus("準備OK");
     }
+
+    $("btnSearch").addEventListener("click", searchShots);
+
+async function searchShots(){
+  clearMsg();
+  try{
+    const res = await apiGetJSON({
+      action: "getShots",
+      startDate: $("fStart").value || "",
+      endDate: $("fEnd").value || "",
+      goalieId: $("fGoalie").value || "",
+      menuId: $("fMenu").value || "",
+      // 事故防止で「今のセッションだけ」にしたいなら下をON
+      // sessionId: state.sessionId,
+      limit: 300
+    });
+    renderShotList(res.shots || []);
+    showOk(`検索OK：${(res.shots||[]).length}件`);
+  }catch(e){
+    showMsg(String(e.message || e));
+  }
+}
+
+function renderShotList(shots){
+  const box = $("shotList");
+  if(!shots.length){
+    box.innerHTML = `<div class="warn">該当データなし</div>`;
+    return;
   }
 
-  async function commitPickedToSession(){
-    if (!state.sessionId) return;
-    const existing = new Set(state.sessionGoalies.map(g=>g.goalieId));
-    for (const g of state.pickedGoalies.values()){
-      if (!existing.has(g.goalieId)){
-        await api("addGoalieToSession", { sessionId: state.sessionId, goalieId: g.goalieId, addedBy: "web" });
-      }
-    }
-    await refreshSessionGoalies();
-    if (!state.activeGoalieId) state.activeGoalieId = state.sessionGoalies[0]?.goalieId || null;
-    renderTabs();
+  box.innerHTML = shots.map(s=>{
+    const t = new Date(s.timestamp);
+    const tText = isFinite(t.getTime()) ? t.toLocaleString("ja-JP") : s.timestamp;
+
+    return `
+      <div class="card" style="padding:10px;margin-top:8px">
+        <div style="font-weight:900">${escapeHtml(tText)}</div>
+        <div style="font-size:12px;color:rgba(255,255,255,.75);margin-top:4px">
+          menu:${escapeHtml(s.menuId)} / goalie:${escapeHtml(s.goalieId)}(${escapeHtml(s.goaliePos)})
+          / ${escapeHtml(s.result)} / course:${s.course9} / area:${s.shooterArea}
+        </div>
+        <div style="display:flex;gap:10px;margin-top:8px">
+          <button class="btn" type="button" onclick="deleteShotUI('${s.shotId}')">この1件を取り消し</button>
+        </div>
+        <div style="font-size:11px;color:rgba(255,255,255,.6);margin-top:6px">
+          shotId: ${escapeHtml(s.shotId)}
+        </div>
+      </div>
+    `;
+  }).join("");
+}
+
+window.deleteShotUI = async (shotId)=>{
+  clearMsg();
+  try{
+    await apiGetJSON({ action:"deleteShot", shotId, deletedBy:"web" });
+    showOk("取り消ししました");
+    searchShots(); // 一覧更新
+  }catch(e){
+    showMsg(String(e.message || e));
   }
+};
 
-  // Events
-  document.addEventListener("click", (e)=>{
-    const t = e.target;
-    if (!(t instanceof HTMLElement)) return;
+function escapeHtml(s){
+  return String(s||"")
+    .replaceAll("&","&amp;")
+    .replaceAll("<","&lt;")
+    .replaceAll(">","&gt;")
+    .replaceAll('"',"&quot;")
+    .replaceAll("'","&#39;");
+}
+    
+    $("btnUndoLast").addEventListener("click", undoLast);
 
-    if (t.classList.contains("btnOpt") && t.dataset.step){
-      const step = t.dataset.step;
-      const val = t.dataset.val;
-
-      if (step === "position"){
-        state.step.position = val; renderStepPills(); syncButtons();
-      } else if (step === "area"){
-        state.step.area = Number(val); renderStepPills(); syncButtons();
-      } else if (step === "result"){
-        state.step.result = val; renderStepPills(); syncButtons();
-      } else if (step === "course"){
-        sendShot(Number(val)); // tap => send
-      }
-    }
-  });
-
-  $("btnClearStep3").onclick = () => { state.step.result = null; renderStepPills(); syncButtons(); };
-  $("btnRapid").onclick = () => { state.rapid = !state.rapid; syncButtons(); };
-
-  $("btnUndoOpen").onclick = openUndo;
-  $("btnCloseUndo").onclick = () => closeModal("modalUndo");
-
-  $("btnReset").onclick = () => { resetAllSteps(); showMsg("ok", "リセットしました"); };
-
-  $("btnBackHome").onclick = () => {
-    if (confirm("ホームに戻りますか？（セッションはシートに残ります）")){
-      setScreen("setup");
-    }
-  };
-
-  $("btnPickGoalies").onclick = () => { renderPickList(); openModal("modalPick"); };
-  $("btnClosePick").onclick = async () => {
-    closeModal("modalPick");
-    renderPicked();
-    if (state.sessionId){
-      try { await commitPickedToSession(); } catch(e){ console.error(e); }
-    }
-  };
-
-  $("btnMaster").onclick = () => openModal("modalAddGoalie");
-  $("btnCloseAddGoalie").onclick = () => closeModal("modalAddGoalie");
-  $("btnCreateGoalieCancel").onclick = () => closeModal("modalAddGoalie");
-
-  $("btnCreateGoalie").onclick = async () => {
-    const name = $("inpNewGoalieName").value.trim();
-    if (!name) return showMsg("error", "名前を入力してください");
-    try{
-      await api("addGoalie", { name });
-      $("inpNewGoalieName").value = "";
-      closeModal("modalAddGoalie");
-      await loadMaster();
-      renderPickList();
-      showMsg("ok", "ゴーリーを追加しました");
-    }catch(e){
-      console.error(e);
-      showMsg("error", "追加に失敗しました");
-    }
-  };
-
-  $("btnAddGoalieInSession").onclick = async () => {
-    await loadMaster();
-    renderPickList();
-    openModal("modalPick");
-  };
-
-  $("btnStart").onclick = async () => {
-    try{ await startSession(); }
-    catch(e){ console.error(e); showMsg("error", String(e)); }
-  };
-
-  // init
-  (async function init(){
-    $("inpDate").value = todayStr();
-    try{
-      await loadMaster();
-    }catch(e){
-      console.error(e);
-      $("envBadge").textContent = "env: error";
-      showMsg("error", "接続失敗：SERVICE_URL（/exec）を確認");
-    }
-    renderPicked();
-    setScreen("setup");
-  })();
-</script>
+    init().catch(e=>{
+      showMsg(e.message || String(e));
+      setStatus("エラー");
+    });
+  </script>
 </body>
 </html>
