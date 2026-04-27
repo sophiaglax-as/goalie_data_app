@@ -3,693 +3,1030 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-  <title>Goalie Data | 入力</title>
+  <title>Goalie Data App</title>
   <style>
     :root{
-      --navy:#0b1b3a;
+      --navy:#0b1f44;
+      --navy2:#16356f;
+      --yellow:#ffd54a;
+      --bg:#f4f7fb;
       --white:#fff;
-      --muted:rgba(255,255,255,.75);
-      --line:rgba(255,255,255,.16);
-      --card:rgba(255,255,255,.08);
-      --btn:#ffd400;
-      --btnText:#0b1b3a;
-      --danger:#ff4d4f;
-      --ok:#34c759;
+      --line:#d7deea;
+      --text:#14213d;
+      --muted:#667085;
+      --danger:#c62828;
+      --ok:#167c3a;
+      --card-shadow:0 10px 24px rgba(11,31,68,.08);
     }
-    *{box-sizing:border-box}
-    body{
+    *{
+      box-sizing:border-box;
+      -webkit-tap-highlight-color:transparent;
+    }
+    html,body{
       margin:0;
-      font-family:-apple-system,BlinkMacSystemFont,"Hiragino Kaku Gothic ProN","Noto Sans JP","Segoe UI",Roboto,Arial,sans-serif;
-      background:var(--navy);
-      color:var(--white);
-      padding:12px 12px 24px;
+      padding:0;
+      background:var(--bg);
+      color:var(--text);
+      font-family:-apple-system,BlinkMacSystemFont,"Hiragino Kaku Gothic ProN","Noto Sans JP","Segoe UI",sans-serif;
     }
-    .app{max-width:560px;margin:0 auto;display:flex;flex-direction:column;gap:12px}
-    .header{
-      position:sticky;top:0;z-index:5;
-      backdrop-filter: blur(10px);
-      background: linear-gradient(to bottom, rgba(11,27,58,.92), rgba(11,27,58,.70));
-      padding:10px 0 6px;
+    body{
+      padding:12px 12px 28px;
     }
-    h1{font-size:18px;margin:0 0 6px}
-    .sub{font-size:12px;color:var(--muted);margin:0}
+    .app{
+      max-width:520px;
+      margin:0 auto;
+      display:flex;
+      flex-direction:column;
+      gap:12px;
+    }
+    .hero{
+      background:linear-gradient(135deg,var(--navy),var(--navy2));
+      color:#fff;
+      border-radius:20px;
+      padding:16px;
+      box-shadow:var(--card-shadow);
+    }
+    .hero h1{
+      margin:0 0 6px;
+      font-size:22px;
+    }
+    .hero p{
+      margin:0;
+      font-size:13px;
+      opacity:.92;
+    }
     .card{
-      background:var(--card);
+      background:var(--white);
       border:1px solid var(--line);
-      border-radius:16px;
+      border-radius:18px;
+      box-shadow:var(--card-shadow);
+      padding:14px;
+    }
+    .tabs{
+      display:grid;
+      grid-template-columns:repeat(4,1fr);
+      gap:8px;
+    }
+    .tabBtn{
+      border:none;
+      border-radius:12px;
+      padding:10px 8px;
+      background:#eaf0fa;
+      color:var(--navy);
+      font-weight:700;
+      cursor:pointer;
+    }
+    .tabBtn.active{
+      background:var(--navy);
+      color:#fff;
+    }
+    .tab{
+      display:none;
+    }
+    .tab.active{
+      display:block;
+    }
+    .sectionTitle{
+      margin:0 0 10px;
+      font-size:16px;
+      font-weight:800;
+      color:var(--navy);
+    }
+    .row{
+      display:grid;
+      gap:10px;
+      margin-bottom:10px;
+    }
+    .row.two{
+      grid-template-columns:1fr 1fr;
+    }
+    label{
+      display:block;
+      font-size:12px;
+      font-weight:700;
+      color:var(--muted);
+      margin-bottom:6px;
+    }
+    input,select,textarea{
+      width:100%;
+      border:1px solid var(--line);
+      border-radius:12px;
       padding:12px;
-    }
-    label{font-size:12px;color:var(--muted)}
-    select,input,textarea{
-      width:100%;
-      background:rgba(255,255,255,.08);
-      border:1px solid var(--line);
-      color:var(--white);
-      border-radius:14px;
-      padding:12px 12px;
       font-size:16px;
-      outline:none;
+      background:#fff;
     }
-    textarea{min-height:72px;resize:vertical}
-    .row{display:flex;gap:10px;align-items:center}
-    .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    textarea{
+      min-height:84px;
+      resize:vertical;
+    }
     .btn{
-      width:100%;
-      background:var(--btn);
-      color:var(--btnText);
-      border:none;border-radius:16px;
-      padding:14px 14px;
-      font-weight:900;font-size:16px;
+      border:none;
+      border-radius:14px;
+      padding:12px 14px;
+      font-size:15px;
+      font-weight:800;
       cursor:pointer;
     }
-    .btn:disabled{opacity:.55;cursor:not-allowed}
-    .pill{
-      display:inline-flex;gap:8px;align-items:center;
-      padding:8px 10px;border-radius:999px;
-      border:1px solid var(--line);
-      background:rgba(255,255,255,.06);
-      font-size:12px;color:var(--muted);
+    .btnPrimary{
+      background:var(--navy);
+      color:#fff;
     }
-    .warn{color:#ffb3b3;font-size:12px;line-height:1.5}
-    .ok{color:#b7ffca;font-size:12px;line-height:1.5}
-    .hidden{display:none !important}
-
-    /* Result buttons */
-    .seg{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px}
-    .seg button{
-      border-radius:16px;
-      border:1px solid var(--line);
-      background:rgba(255,255,255,.06);
-      color:var(--white);
-      padding:14px 10px;
-      font-size:16px;
-      font-weight:900;
-      cursor:pointer;
+    .btnSub{
+      background:#eef3fb;
+      color:var(--navy);
     }
-    .seg button.active{
-      background:rgba(255,212,0,.25);
-      border-color:rgba(255,212,0,.5);
+    .btnDanger{
+      background:#fdecec;
+      color:var(--danger);
     }
-
-    /* Course 3×3 */
-    .board{
+    .btn:disabled{
+      opacity:.45;
+      cursor:not-allowed;
+    }
+    .btnRow{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:10px;
+    }
+    .chips{
       display:grid;
       grid-template-columns:repeat(3,1fr);
-      gap:10px;
+      gap:8px;
+    }
+    .chips.two{
+      grid-template-columns:repeat(2,1fr);
+    }
+    .chip{
+      border:1px solid var(--line);
+      background:#fff;
+      color:var(--navy);
+      border-radius:14px;
+      padding:12px 8px;
+      font-size:15px;
+      font-weight:800;
+      text-align:center;
+      cursor:pointer;
+      user-select:none;
+    }
+    .chip.active{
+      background:var(--yellow);
+      border-color:#efc62c;
+    }
+    .status{
+      font-size:13px;
+      font-weight:700;
+      padding:10px 12px;
+      border-radius:12px;
+      background:#eef3fb;
+      color:var(--navy);
+    }
+    .status.ok{
+      background:#edf8f0;
+      color:var(--ok);
+    }
+    .status.ng{
+      background:#fdecec;
+      color:var(--danger);
+    }
+    .miniList{
+      display:flex;
+      flex-direction:column;
+      gap:8px;
       margin-top:10px;
     }
-    .cellBtn{
-      aspect-ratio:1/1;
-      border-radius:16px;
+    .miniItem{
       border:1px solid var(--line);
-      background:rgba(255,255,255,.06);
-      color:var(--white);
-      font-size:18px;
-      font-weight:900;
-      cursor:pointer;
+      border-radius:14px;
+      padding:10px 12px;
+      background:#fff;
     }
-    .cellBtn:active{transform:scale(.98)}
-
-    /* Shooter Area 3×2 (5-3-1 / 6-4-2) */
-    .areaGrid{
+    .miniTop{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      margin-bottom:4px;
+    }
+    .miniName{
+      font-weight:800;
+      color:var(--navy);
+    }
+    .badge{
+      display:inline-block;
+      padding:4px 8px;
+      border-radius:999px;
+      font-size:11px;
+      font-weight:800;
+      background:#eef3fb;
+      color:var(--navy);
+    }
+    .badge.active{
+      background:#edf8f0;
+      color:var(--ok);
+    }
+    .badge.inactive{
+      background:#f3f4f6;
+      color:#667085;
+    }
+    .grid9{
       display:grid;
       grid-template-columns:repeat(3,1fr);
-      gap:10px;
-      margin-top:10px;
+      gap:8px;
     }
-    .areaBtn{
-      border-radius:16px;
+    .gridCell{
       border:1px solid var(--line);
-      background:rgba(255,255,255,.06);
-      color:var(--white);
-      padding:14px 10px;
-      font-size:16px;
+      background:#fff;
+      border-radius:14px;
+      min-height:68px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-size:22px;
       font-weight:900;
+      color:var(--navy);
       cursor:pointer;
     }
-    .areaBtn.active{
-      background:rgba(255,212,0,.25);
-      border-color:rgba(255,212,0,.5);
+    .gridCell.active{
+      background:var(--yellow);
+      border-color:#efc62c;
     }
-
-    /* Goalie Position (Left/Center/Right) */
-    .posGrid{
+    .currentBox{
       display:grid;
-      grid-template-columns:repeat(3,1fr);
-      gap:10px;
-      margin-top:10px;
+      gap:8px;
+      background:#f8fbff;
+      border:1px dashed #bfd0ec;
+      border-radius:14px;
+      padding:12px;
+      margin-bottom:12px;
+      font-size:13px;
     }
-    .posBtn{
-      border-radius:16px;
-      border:1px solid var(--line);
-      background:rgba(255,255,255,.06);
-      color:var(--white);
-      padding:14px 10px;
-      font-size:16px;
-      font-weight:900;
-      cursor:pointer;
+    .muted{
+      color:var(--muted);
+      font-size:12px;
     }
-    .posBtn.active{
-      background:rgba(255,212,0,.25);
-      border-color:rgba(255,212,0,.5);
+    .small{
+      font-size:12px;
     }
-
+    @media (max-width:480px){
+      .tabs{
+        grid-template-columns:repeat(2,1fr);
+      }
+      .row.two{
+        grid-template-columns:1fr;
+      }
+      .gridCell{
+        min-height:60px;
+      }
+    }
   </style>
 </head>
 <body>
   <div class="app">
-    <div class="header">
-      <h1>ゴーリーデータ｜入力</h1>
-      <p class="sub">メニュー → セッション → ゴーリー → シューターエリア → 結果 → コース9 → 送信</p>
-    </div>
+    <section class="hero">
+      <h1>Goalie Data App</h1>
+      <p>ゴーリー登録・メニュー登録・セッション作成・4ステップ入力</p>
+    </section>
 
-    <div class="card">
-      <div class="row" style="justify-content:space-between">
-        <div class="pill" id="statusPill">● 読み込み中…</div>
-        <div class="pill" id="envPill">API</div>
+    <section class="card">
+      <div class="tabs">
+        <button class="tabBtn active" data-tab="inputTab">入力</button>
+        <button class="tabBtn" data-tab="sessionTab">セッション</button>
+        <button class="tabBtn" data-tab="goalieTab">ゴーリー</button>
+        <button class="tabBtn" data-tab="menuTab">メニュー</button>
       </div>
-      <div id="msg" class="warn" style="margin-top:8px;display:none"></div>
-      <div id="msgOk" class="ok" style="margin-top:8px;display:none"></div>
-    </div>
+    </section>
 
-    <!-- ① Menu + Session -->
-    <div class="card">
-      <label>① メニュー選択</label>
-      <select id="menuSelect"></select>
+    <div id="statusBox" class="status">読み込み中…</div>
 
-      <div class="grid2" style="margin-top:10px">
+    <!-- 入力 -->
+    <section id="inputTab" class="card tab active">
+      <h2 class="sectionTitle">データ入力</h2>
+
+      <div class="currentBox">
+        <div><strong>入力者：</strong><span id="viewInputBy">未設定</span></div>
+        <div><strong>日付：</strong><span id="viewDate">未設定</span></div>
+        <div><strong>セッション：</strong><span id="viewSession">未選択</span></div>
+        <div><strong>ゴーリー：</strong><span id="viewGoalie">未選択</span></div>
+      </div>
+
+      <div class="row">
         <div>
-          <label>日付</label>
-          <input type="date" id="sessionDate" />
+          <label for="inputBy">入力者名</label>
+          <input id="inputBy" type="text" placeholder="" />
+        </div>
+      </div>
+
+      <div class="row two">
+        <div>
+          <label for="dateInput">日付</label>
+          <input id="dateInput" type="date" />
         </div>
         <div>
-          <label>タイトル（任意）</label>
-          <input type="text" id="sessionTitle" placeholder="例：午前練 / 6on6前 など" />
+          <label for="sessionSelect">セッション</label>
+          <select id="sessionSelect"></select>
         </div>
       </div>
 
-      <div style="margin-top:10px">
-        <label>メモ（任意）</label>
-        <textarea id="sessionNote" placeholder="補足"></textarea>
+      <div class="row">
+        <div>
+          <label for="goalieSelect">ゴーリー</label>
+          <select id="goalieSelect"></select>
+        </div>
       </div>
 
-      <button class="btn" id="createSessionBtn" style="margin-top:10px">セッション作成（この条件で入力開始）</button>
-
-      <div style="margin-top:10px">
-        <div class="pill" id="sessionPill">session：未作成</div>
-        <div class="pill" id="menuPill" style="margin-left:8px">menu：未選択</div>
+      <div class="row">
+        <label>① ゴーリー位置</label>
+        <div class="chips" id="goaliePosChips">
+          <button class="chip" data-value="L">左</button>
+          <button class="chip" data-value="C">中央</button>
+          <button class="chip" data-value="R">右</button>
+        </div>
       </div>
 
-      <div class="warn" style="margin-top:8px">
-        ※この版は <b>shots に menuId / shooterArea を必ず保存</b>します（後で集計が壊れない）。
+      <div class="row">
+        <label>② シューターエリア</label>
+        <div class="chips" id="shooterAreaChips">
+          <button class="chip" data-value="5">5</button>
+          <button class="chip" data-value="3">3</button>
+          <button class="chip" data-value="1">1</button>
+          <button class="chip" data-value="6">6</button>
+          <button class="chip" data-value="4">4</button>
+          <button class="chip" data-value="2">2</button>
+        </div>
       </div>
-    </div>
 
-    <!-- ② Goalie -->
-    <div class="card">
-      <label>② ゴーリー選択</label>
-      <select id="goalieSelect"></select>
-    </div>
-
-    <!-- ③ Goalie Position -->
-     <div class="card">
-      <label>③ ゴーリー位置（左・中央・右）</label>
-      <div class="posGrid" id="posGrid"></div>
-    </div>
-
-    <!-- ③ Shooter Area (復活) -->
-    <div class="card">
-      <label>③ シューターエリア（1〜6）</label>
-      <div class="areaGrid" id="areaGrid"></div>
-      <div class="warn" style="margin-top:8px">並び：上段 5-3-1 / 下段 6-4-2</div>
-    </div>
-
-    <!-- ④ Result -->
-    <div class="card">
-      <label>④ 結果</label>
-      <div class="seg">
-        <button id="btnSave" type="button">セーブ</button>
-        <button id="btnGoal" type="button">成功</button>
+      <div class="row">
+        <label>③ 結果</label>
+        <div class="chips two" id="resultChips">
+          <button class="chip" data-value="goal">成功</button>
+          <button class="chip" data-value="save">セーブ</button>
+        </div>
       </div>
-      <div class="warn" style="margin-top:8px">※「枠外」は今回は記録しない前提（成功/セーブのみ）。</div>
-    </div>
 
-    <!-- ⑤ Course 3×3 -->
-    <div class="card">
-      <label>⑤ コース（枠内 3×3 / 1〜9）</label>
-      <div class="board" id="board"></div>
-      <div class="warn" style="margin-top:8px">左上=1 … 右下=9</div>
-    </div>
+      <div class="row">
+        <label>④ コース（1〜9）</label>
+        <div class="grid9" id="courseGrid">
+          <button class="gridCell" data-value="1">1</button>
+          <button class="gridCell" data-value="2">2</button>
+          <button class="gridCell" data-value="3">3</button>
+          <button class="gridCell" data-value="4">4</button>
+          <button class="gridCell" data-value="5">5</button>
+          <button class="gridCell" data-value="6">6</button>
+          <button class="gridCell" data-value="7">7</button>
+          <button class="gridCell" data-value="8">8</button>
+          <button class="gridCell" data-value="9">9</button>
+        </div>
+      </div>
 
-    <button class="btn" id="sendBtn" type="button">送信</button>
-    <button id="btnUndoLast" type="button">直前取り消し</button>
-  </div>
+      <div class="row">
+        <div>
+          <label for="shotNote">メモ（任意）</label>
+          <input id="shotNote" type="text" placeholder="任意メモ" />
+        </div>
+      </div>
 
-  <div class="card">
-    <label>検索して取り消し（期間 / ゴーリー / メニュー）</label>
-  
-    <div class="row" style="margin-top:10px">
-      <input id="fStart" type="date">
-      <input id="fEnd" type="date">
-    </div>
-  
-    <div class="row" style="margin-top:10px">
-      <select id="fGoalie"></select>
-      <select id="fMenu"></select>
-    </div>
-  
-    <div class="row" style="margin-top:10px">
-      <button class="btn" id="btnSearch" type="button">検索</button>
-    </div>
-  
-    <div id="shotList" style="margin-top:10px"></div>
+      <div class="btnRow">
+        <button id="sendBtn" class="btn btnPrimary">送信</button>
+        <button id="undoBtn" class="btn btnDanger">直前取り消し</button>
+      </div>
+
+      <div class="miniList" id="recentShots"></div>
+    </section>
+
+    <!-- セッション -->
+    <section id="sessionTab" class="card tab">
+      <h2 class="sectionTitle">セッション作成</h2>
+
+      <div class="row two">
+        <div>
+          <label for="sessionDate">日付</label>
+          <input id="sessionDate" type="date" />
+        </div>
+        <div>
+          <label for="sessionMenu">メニュー</label>
+          <select id="sessionMenu"></select>
+        </div>
+      </div>
+
+      <div class="row">
+        <div>
+          <label for="sessionTitle">セッション名</label>
+          <input id="sessionTitle" type="text" placeholder="例：午前練習 / 6on6 / 1on1" />
+        </div>
+      </div>
+
+      <div class="row">
+        <div>
+          <label for="sessionNote">メモ</label>
+          <textarea id="sessionNote" placeholder="任意"></textarea>
+        </div>
+      </div>
+
+      <button id="createSessionBtn" class="btn btnPrimary">セッション作成</button>
+      <div class="miniList" id="sessionList"></div>
+    </section>
+
+    <!-- ゴーリー -->
+    <section id="goalieTab" class="card tab">
+      <h2 class="sectionTitle">ゴーリー管理</h2>
+
+      <div class="row">
+        <div>
+          <label for="goalieName">ゴーリー名</label>
+          <input id="goalieName" type="text" placeholder="名前を入力" />
+        </div>
+      </div>
+
+      <button id="addGoalieBtn" class="btn btnPrimary">追加</button>
+      <div class="miniList" id="goalieList"></div>
+    </section>
+
+    <!-- メニュー -->
+    <section id="menuTab" class="card tab">
+      <h2 class="sectionTitle">メニュー管理</h2>
+
+      <div class="row two">
+        <div>
+          <label for="menuName">メニュー名</label>
+          <input id="menuName" type="text" placeholder="例：6on6" />
+        </div>
+        <div>
+          <label for="groupType">種別</label>
+          <select id="groupType">
+            <option value="対人">対人</option>
+            <option value="シュー練">シュー練</option>
+          </select>
+        </div>
+      </div>
+
+      <button id="addMenuBtn" class="btn btnPrimary">追加</button>
+      <div class="miniList" id="menuList"></div>
+    </section>
   </div>
 
   <script>
-    // ====== 設定：GAS WebアプリURL（/exec）を貼る ======
-    const SERVICE_URL = "https://script.google.com/macros/s/AKfycbwHdYfkDlZX6CWnv9tN2NxH8Hhg15F07mfEChnQBJm8JtATw78De9Z4e_3-NYCX7Rbrdw/exec";
+    const SERVICE_URL = 'https://script.google.com/macros/s/AKfycbyPA_S0AAhpDav-4aDNUr5fYe07ZhSGjVJ50PX4lIMrNhC1uo5E4o4dvw4y4ntun05c/exec';
 
-    const $ = (id)=>document.getElementById(id);
-
-    // ✅ A：state に shooterArea を追加
     const state = {
-      sessionId: "",
-      menuId: "",
-      goalieId: "",
-      goaliePos: "",   // ★追加
-      shooterArea: 0, // ★追加
-      result: "",     // "save" | "goal"
-      course9: 0
+      goalies: [],
+      menus: [],
+      sessions: [],
+      selectedGoaliePos: '',
+      selectedShooterArea: '',
+      selectedResult: '',
+      selectedCourse9: '',
     };
 
-    function setStatus(t){ $("statusPill").textContent = "● " + t; }
-    function showMsg(text){
-      $("msgOk").style.display = "none";
-      $("msgOk").textContent = "";
-      $("msg").style.display = "block";
-      $("msg").textContent = text;
-    }
-    function showNg(text){ showMsg(text); 
-    }
-    function showOk(text){
-      $("msg").style.display = "none";
-      $("msg").textContent = "";
-      $("msgOk").style.display = "block";
-      $("msgOk").textContent = text;
-    }
-    function clearMsg(){
-      $("msg").style.display = "none";
-      $("msg").textContent = "";
-      $("msgOk").style.display = "none";
-      $("msgOk").textContent = "";
+    const $ = (id) => document.getElementById(id);
+
+    function setStatus(msg, type=''){
+      const el = $('statusBox');
+      el.textContent = msg;
+      el.className = 'status' + (type ? ' ' + type : '');
     }
 
-    async function apiGet(params){
-      const url = new URL(SERVICE_URL);
-      Object.entries(params).forEach(([k,v]) => url.searchParams.set(k, v));
-      const res = await fetch(url.toString(), { method:"GET" });
-      const text = await res.text();
-      let json;
-      try{ json = JSON.parse(text); }
-      catch(e){ throw new Error("JSON parse failed: " + text.slice(0,140)); }
-      if(!json.ok) throw new Error(json.error || "API error");
-      return json;
-    }
-
-    async function apiGetJSON(params){
-  const url = new URL(SERVICE_URL);
-  Object.entries(params).forEach(([k,v]) => url.searchParams.set(k, v));
-  const res = await fetch(url.toString(), { method:"GET" });
-  const text = await res.text();
-  let json;
-  try{ json = JSON.parse(text); }
-  catch(e){ throw new Error("JSON parse failed: " + text.slice(0,140)); }
-  if(!json.ok) throw new Error(json.error || "API error");
-  return json;
-}
-
-    async function apiPost(payload){
-      const res = await fetch(SERVICE_URL, {
-        method:"POST",
-        headers: { "Content-Type":"application/json" },
-        body: JSON.stringify(payload)
-      });
-      const text = await res.text();
-      let json;
-      try{ json = JSON.parse(text); }
-      catch(e){ throw new Error("JSON parse failed: " + text.slice(0,140)); }
-      if(!json.ok) throw new Error(json.error || "API error");
-      return json;
-    }
-
-    function isoNow(){ return new Date().toISOString(); }
-
-    function setActiveResult(val){
-      state.result = val;
-      $("btnSave").classList.toggle("active", val === "save");
-      $("btnGoal").classList.toggle("active", val === "goal");
-    }
-
-    function buildBoard(){
-      const b = $("board");
-      b.innerHTML = "";
-      for(let i=1;i<=9;i++){
-        const btn = document.createElement("button");
-        btn.className = "cellBtn";
-        btn.type = "button";
-        btn.textContent = i;
-        btn.addEventListener("click", ()=>{
-          state.course9 = i;
-          showOk("コース選択：#" + i + "（送信で確定）");
-        });
-        b.appendChild(btn);
-      }
-    }
-
-    // ✅ D：シューターエリア生成（指定並び）
-    function buildShooterArea(){
-      const order = [5,3,1, 6,4,2]; // ★指定並び
-      const g = $("areaGrid");
-      g.innerHTML = "";
-
-      order.forEach(n=>{
-        const b = document.createElement("button");
-        b.type = "button";
-        b.className = "areaBtn";
-        b.textContent = n;
-
-        b.addEventListener("click", ()=>{
-          state.shooterArea = n;
-
-          // active付け替え
-          [...g.querySelectorAll(".areaBtn")].forEach(x=>x.classList.remove("active"));
-          b.classList.add("active");
-
-          showOk("シューターエリア：#" + n);
-        });
-
-        g.appendChild(b);
-      });
-    }
-
-    function buildGoaliePos(){
-  const order = [
-    { v:"L", label:"左" },
-    { v:"C", label:"中央" },
-    { v:"R", label:"右" },
-  ];
-  const g = $("posGrid");
-  g.innerHTML = "";
-
-  order.forEach(({v,label})=>{
-    const b = document.createElement("button");
-    b.type = "button";
-    b.className = "posBtn";
-    b.textContent = label;
-
-    b.addEventListener("click", ()=>{
-      state.goaliePos = v;
-
-      [...g.querySelectorAll(".posBtn")].forEach(x=>x.classList.remove("active"));
-      b.classList.add("active");
-
-      showOk("ゴーリー位置：" + label);
-    });
-
-    g.appendChild(b);
-  });
-}
-
-    function syncPills(){
-      $("sessionPill").textContent = state.sessionId ? `session：${state.sessionId.slice(0,8)}…` : "session：未作成";
-      $("menuPill").textContent = state.menuId ? `menu：${state.menuId}` : "menu：未選択";
-    }
-
-    function todayYmd(){
+    function todayStr(){
       const d = new Date();
       const y = d.getFullYear();
-      const m = String(d.getMonth()+1).padStart(2,"0");
-      const day = String(d.getDate()).padStart(2,"0");
+      const m = String(d.getMonth()+1).padStart(2,'0');
+      const day = String(d.getDate()).padStart(2,'0');
       return `${y}-${m}-${day}`;
     }
 
-    async function undoLast(){
-  try{
-    if(!state.sessionId) throw new Error("sessionIdが未設定です");
+    function apiJsonp(params = {}){
+      return new Promise((resolve, reject) => {
+        const callbackName = 'cb_' + Date.now() + '_' + Math.floor(Math.random() * 100000);
+        params.callback = callbackName;
 
-    const res = await apiGetJSON({ action:"getRecentShots", sessionId: state.sessionId, limit: 1 });
-    const shot = (res.shots || [])[0];
-    if(!shot) { showMsg("取り消せるデータがありません"); return; }
+        const query = new URLSearchParams(params).toString();
+        const script = document.createElement('script');
+        script.src = `${SERVICE_URL}?${query}`;
 
-    await apiGetJSON({ action:"deleteShot", shotId: shot.shotId, deletedBy: "web" });
-    showOk(`直前取り消しOK（${shot.shotId.slice(0,8)}…）`);
-  }catch(e){
-    showMsg(String(e.message || e));
+        let done = false;
+        const cleanup = () => {
+          done = true;
+          try { delete window[callbackName]; } catch(e){}
+          if (script.parentNode) script.parentNode.removeChild(script);
+        };
+
+        window[callbackName] = (data) => {
+          cleanup();
+          resolve(data);
+        };
+
+        script.onerror = () => {
+          cleanup();
+          reject(new Error('通信に失敗しました'));
+        };
+
+        document.body.appendChild(script);
+
+        setTimeout(() => {
+          if (!done) {
+            cleanup();
+            reject(new Error('タイムアウトしました'));
+          }
+        }, 12000);
+      });
+    }
+
+    function setChipGroup(containerId, value){
+      const wrap = $(containerId);
+      [...wrap.querySelectorAll('[data-value]')].forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.value === value);
+      });
+    }
+
+    function bindChipGroup(containerId, onPick){
+      const wrap = $(containerId);
+      wrap.addEventListener('click', (e) => {
+        const btn = e.target.closest('[data-value]');
+        if(!btn) return;
+        onPick(btn.dataset.value);
+      });
+    }
+
+    function renderGoalies(){
+      const activeGoalies = state.goalies.filter(g => String(g.status) === 'active');
+      const goalieSelect = $('goalieSelect');
+      goalieSelect.innerHTML = activeGoalies.length
+        ? activeGoalies.map(g => `<option value="${g.goalieId}">${escapeHtml(g.name)}</option>`).join('')
+        : `<option value="">ゴーリー未登録</option>`;
+
+      const list = $('goalieList');
+      list.innerHTML = state.goalies.length ? state.goalies.map(g => `
+        <div class="miniItem">
+          <div class="miniTop">
+            <div class="miniName">${escapeHtml(g.name)}</div>
+            <span class="badge ${g.status === 'active' ? 'active' : 'inactive'}">${g.status}</span>
+          </div>
+          <div class="small muted">${escapeHtml(g.goalieId || '')}</div>
+          <div style="margin-top:8px;">
+            <button class="btn btnSub small" onclick="toggleGoalie('${g.goalieId}','${g.status === 'active' ? 'inactive' : 'active'}')">
+              ${g.status === 'active' ? '非表示にする' : '表示に戻す'}
+            </button>
+          </div>
+        </div>
+      `).join('') : `<div class="muted">まだ登録がありません</div>`;
+
+      updateCurrentBox();
+    }
+
+    function renderMenus(){
+        const activeMenus = state.menus.filter(m => isTruthyActive(m.isActive));
+
+  $('sessionMenu').innerHTML = activeMenus.length
+    ? activeMenus.map(m => `<option value="${m.menuId}">${escapeHtml(m.menuName)}</option>`).join('')
+    : `<option value="">メニュー未登録</option>`;
+    const list = $('menuList');
+    list.innerHTML = state.menus.length ? state.menus.map(m => {
+        const active = isTruthyActive(m.isActive);
+        return `
+        <div class="miniItem">
+            <div class="miniTop">
+                <div class="miniName">${escapeHtml(m.menuName)}</div>
+                <span class="badge ${active ? 'active' : 'inactive'}">${active ? 'active' : 'inactive'}</span>
+                </div>
+                <div class="small muted">${escapeHtml(m.groupType || '')}</div>
+                <div style="margin-top:8px;">
+                    <button
+                    type="button"
+                    class="btn btnSub small"
+                    onclick="toggleMenu('${m.menuId}','${active ? 'false' : 'true'}')">
+                    ${active ? '非表示にする' : '表示に戻す'}
+                    </button>
+                  </div>
+                </div>
+                `;
+            }).join('') : `<div class="muted">まだ登録がありません</div>`;
+        }
+
+        function renderSessions(selectedSessionId = ''){
+  const sessions = state.sessions || [];
+  const sessionSelect = $('sessionSelect');
+
+  sessionSelect.innerHTML = sessions.length
+    ? sessions.map(s => {
+        const menu = state.menus.find(m => m.menuId === s.menuId);
+        const menuName = menu ? menu.menuName : s.menuId;
+        return `<option value="${s.sessionId}" data-menuid="${s.menuId}">
+          ${escapeHtml(s.title)} / ${escapeHtml(menuName)}
+        </option>`;
+      }).join('')
+    : `<option value="">先にセッションを作成してください</option>`;
+
+  if (sessions.length) {
+    const keepId =
+      selectedSessionId ||
+      sessionSelect.dataset.pendingSessionId ||
+      sessionSelect.value ||
+      '';
+
+    const exists = sessions.some(s => s.sessionId === keepId);
+
+    if (exists) {
+      sessionSelect.value = keepId;
+    } else {
+      sessionSelect.selectedIndex = 0;
+    }
   }
+
+  sessionSelect.dataset.pendingSessionId = '';
+
+  $('sessionList').innerHTML = state.sessions.length
+    ? state.sessions.map(s => {
+        const menu = state.menus.find(m => m.menuId === s.menuId);
+        const menuName = menu ? menu.menuName : s.menuId;
+        return `
+          <div class="miniItem">
+            <div class="miniTop">
+              <div class="miniName">${escapeHtml(s.title)}</div>
+              <span class="badge">${escapeHtml(s.date)}</span>
+            </div>
+            <div class="small muted">${escapeHtml(menuName)}</div>
+          </div>
+        `;
+      }).join('')
+    : `<div class="muted">まだセッションがありません</div>`;
+
+  updateCurrentBox();
+  loadRecentShots();
 }
 
-    async function init(){
-      clearMsg();
 
-      buildBoard();
-      buildShooterArea(); // ✅ 追加
-      buildBoard();
-      buildGoaliePos();   // ★追加
-      buildShooterArea();
+    function updateCurrentBox(){
+      const inputBy = $('inputBy').value.trim() || '未設定';
+      const date = $('dateInput').value || '未設定';
 
-      if(!SERVICE_URL || SERVICE_URL.includes("PASTE_")){
-        $("envPill").textContent = "⚠️ SERVICE_URL未設定";
-        setStatus("準備OK（URL未設定）");
-        $("sessionDate").value = todayYmd();
-        syncPills();
+      const sessionId = $('sessionSelect').value;
+      const session = state.sessions.find(s => s.sessionId === sessionId);
+      const sessionText = session ? `${session.title} (${session.date})` : '未選択';
+
+      const goalieId = $('goalieSelect').value;
+      const goalie = state.goalies.find(g => g.goalieId === goalieId);
+      const goalieText = goalie ? goalie.name : '未選択';
+
+      $('viewInputBy').textContent = inputBy;
+      $('viewDate').textContent = date;
+      $('viewSession').textContent = sessionText;
+      $('viewGoalie').textContent = goalieText;
+    }
+
+    async function loadGoalies(){
+      const res = await apiJsonp({ action:'getGoalies' });
+      if(!res.ok) throw new Error(res.error || 'getGoalies failed');
+      state.goalies = res.items || [];
+      renderGoalies();
+    }
+
+    async function loadMenus(){
+      const res = await apiJsonp({ action:'getMenus' });
+      if(!res.ok) throw new Error(res.error || 'getMenus failed');
+      state.menus = res.items || [];
+      renderMenus();
+    }
+
+    async function loadSessions(date='', selectedSessionId = ''){
+      const res = await apiJsonp({ action:'getSessions', date: date || '' });
+      if(!res.ok) throw new Error(res.error || 'getSessions failed');
+      state.sessions = res.items || [];
+      renderSessions(selectedSessionId);
+    }
+
+    async function loadRecentShots(){
+      const sessionId = $('sessionSelect').value;
+      if(!sessionId){
+        $('recentShots').innerHTML = '';
+        return;
+      }
+      const res = await apiJsonp({ action:'getRecentShots', sessionId, limit:10 });
+      if(!res.ok){
+        $('recentShots').innerHTML = '';
+        return;
+      }
+      const items = res.items || [];
+      $('recentShots').innerHTML = items.length ? items.map(s => `
+        <div class="miniItem">
+          <div class="miniTop">
+            <div class="miniName">${escapeHtml(s.result)} / ${escapeHtml(s.course9)}</div>
+            <span class="badge">${escapeHtml(s.timestamp || '')}</span>
+          </div>
+          <div class="small muted">
+            位置:${escapeHtml(s.goaliePos)} / エリア:${escapeHtml(s.shooterArea)} / 入力:${escapeHtml(s.inputBy || '')}
+          </div>
+        </div>
+      `).join('') : `<div class="muted">まだ入力がありません</div>`;
+    }
+
+    async function addGoalie(){
+      const name = $('goalieName').value.trim();
+      if(!name){
+        setStatus('ゴーリー名を入力してください', 'ng');
+        return;
+      }
+      setStatus('ゴーリーを追加しています…');
+      try{
+        const res = await apiJsonp({ action:'addGoalie', name });
+        if(!res.ok) throw new Error(res.error || '追加に失敗しました');
+        $('goalieName').value = '';
+        await loadGoalies();
+        setStatus('ゴーリーを追加しました', 'ok');
+      }catch(err){
+        setStatus(err.message, 'ng');
+      }
+    }
+
+    async function toggleGoalie(goalieId, status){
+      try{
+        const res = await apiJsonp({ action:'toggleGoalieStatus', goalieId, status });
+        if(!res.ok) throw new Error(res.error || '更新に失敗しました');
+        await loadGoalies();
+        setStatus('ゴーリー表示状態を更新しました', 'ok');
+      }catch(err){
+        setStatus(err.message, 'ng');
+      }
+    }
+    window.toggleGoalie = toggleGoalie;
+
+    async function addMenu(){
+      const menuName = $('menuName').value.trim();
+      const groupType = $('groupType').value;
+      if(!menuName){
+        setStatus('メニュー名を入力してください', 'ng');
+        return;
+      }
+      setStatus('メニューを追加しています…');
+      try{
+        const res = await apiJsonp({ action:'addMenu', menuName, groupType });
+        if(!res.ok) throw new Error(res.error || '追加に失敗しました');
+        $('menuName').value = '';
+        await loadMenus();
+        setStatus('メニューを追加しました', 'ok');
+      }catch(err){
+        setStatus(err.message, 'ng');
+      }
+    }
+
+    async function toggleMenu(menuId, isActive){
+        try{
+            const res = await apiJsonp({ action:'toggleMenuActive', menuId, isActive });
+            if(!res.ok) throw new Error(res.error || '更新に失敗しました');
+            await loadMenus();
+            await loadSessions($('dateInput').value);
+            
+            renderMenus();
+            renderSessions();
+            
+            setStatus('メニュー表示状態を更新しました', 'ok');
+        }catch(err){
+            setStatus(err.message, 'ng');
+        }
+    }
+    window.toggleMenu = toggleMenu;
+
+    async function createSession(){
+      const date = $('sessionDate').value;
+      const menuId = $('sessionMenu').value;
+      const title = $('sessionTitle').value.trim();
+      const note = $('sessionNote').value.trim();
+
+      if(!date){
+        setStatus('日付を入力してください', 'ng');
+        return;
+      }
+      if(!menuId){
+        setStatus('メニューを選択してください', 'ng');
+        return;
+      }
+      if(!title){
+        setStatus('セッション名を入力してください', 'ng');
         return;
       }
 
-      $("envPill").textContent = "✅ 接続先OK";
-      setStatus("マスタ読込…");
+      setStatus('セッションを作成しています…');
+      try{
+        const res = await apiJsonp({ action:'createSession', date, menuId, title, note });
+        if(!res.ok) throw new Error(res.error || '作成に失敗しました');
 
-      await apiGet({ action:"ping" });
+        $('sessionDate').value = date;
+        $('dateInput').value = date;
 
-      const [menus, goalies] = await Promise.all([
-        apiGet({ action:"getMenus" }),
-        apiGet({ action:"getGoalies" }),
-      ]);
+        $('sessionTitle').value = '';
+        $('sessionNote').value = '';
 
-      // menus
-      const ms = $("menuSelect");
-      ms.innerHTML = `<option value="">メニューを選択</option>`;
-      (menus.menus || []).forEach(m=>{
-        const opt = document.createElement("option");
-        opt.value = m.menuId;
-        opt.textContent = `${m.menuName}${m.groupType ? `（${m.groupType}）` : ""}`;
-        ms.appendChild(opt);
-      });
+        $('dateInput').value = date;
+        $('sessionSelect').dataset.pendingSessionId = res.sessionId;
+        await loadSessions(date, res.sessionId);
+        updateCurrentBox();
+        await loadRecentShots();
 
-      ms.addEventListener("change", ()=>{
-        state.menuId = ms.value;
-        syncPills();
-      });
-
-      // goalies
-      const gs = $("goalieSelect");
-      gs.innerHTML = `<option value="">ゴーリーを選択</option>`;
-      (goalies.goalies || []).forEach(g=>{
-        const opt = document.createElement("option");
-        opt.value = g.goalieId;
-        opt.textContent = g.name;
-        gs.appendChild(opt);
-      });
-
-      gs.addEventListener("change", ()=>{
-        state.goalieId = gs.value;
-      });
-
-      const fg = $("fGoalie");
-      fg.innerHTML = `<option value="">（全ゴーリー）</option>`;
-      (goalies.goalies || []).forEach(g=>{
-        const opt = document.createElement("option");
-        opt.value = g.goalieId;
-        opt.textContent = g.name;
-        fg.appendChild(opt);
-      });
-
-      const fm = $("fMenu");
-      fm.innerHTML = `<option value="">（全メニュー）</option>`;
-      (menus.menus || []).forEach(m=>{
-        const opt = document.createElement("option");
-        opt.value = m.menuId;
-        opt.textContent = `${m.menuName}${m.groupType ? `（${m.groupType}）` : ""}`;
-        fm.appendChild(opt);
-      });
-
-      // default date
-      $("sessionDate").value = todayYmd();
-
-      // result buttons
-      $("btnSave").addEventListener("click", ()=>setActiveResult("save"));
-      $("btnGoal").addEventListener("click", ()=>setActiveResult("goal"));
-      setActiveResult("save");
-
-      // create session
-      $("createSessionBtn").addEventListener("click", async ()=>{
-        clearMsg();
-        try{
-          if(!state.menuId) throw new Error("メニューを選択してください");
-          const date = $("sessionDate").value;
-          if(!date) throw new Error("日付を入力してください");
-
-          setStatus("セッション作成中…");
-          $("createSessionBtn").disabled = true;
-
-          const json = await apiGetJSON({
-            action: "createSession",
-            date,
-            title: $("sessionTitle").value || "",
-            menuId: state.menuId,
-            note: $("sessionNote").value || ""
-          });
-
-          state.sessionId = json.sessionId;
-          syncPills();
-          showOk("セッション作成OK。入力を開始できます。");
-          setStatus("準備OK");
-        }catch(e){
-          showMsg(e.message || String(e));
-          setStatus("エラー");
-        }finally{
-          $("createSessionBtn").disabled = false;
-        }
-      });
-
-      // send
-      $("sendBtn").addEventListener("click", async ()=>{
-        clearMsg();
-        try{
-          if(!state.sessionId) throw new Error("先にセッションを作成してください");
-          if(!state.menuId) throw new Error("メニューが未選択です（menuIdが必要）");
-          if(!state.goalieId) throw new Error("ゴーリーを選択してください");
-
-          // ✅ E：シューターエリア必須チェック
-          if(!(state.shooterArea >= 1 && state.shooterArea <= 6)) {
-            throw new Error("シューターエリア（1〜6）を選択してください");
-          }
-
-          if(!(state.result === "save" || state.result === "goal")) throw new Error("結果を選択してください");
-          if(!(state.course9 >= 1 && state.course9 <= 9)) throw new Error("コース（1〜9）を選択してください");
-
-          setStatus("送信中…");
-          $("sendBtn").disabled = true;
-
-          const payload = {
-            action: "addShot",
-            timestamp: isoNow(),
-            sessionId: state.sessionId,
-            menuId: state.menuId,             // ★shots.menuId に入る
-            goalieId: state.goalieId,
-            goaliePos: state.goaliePos,  
-            shooterArea: state.shooterArea,   // ★追加（shots.shooterArea に入る）
-            result: state.result,
-            course9: state.course9,
-            isInFrame: true,
-            inGoal: (state.result === "goal"),
-            note: ""
-          };
-
-           const json= await apiGetJSON(payload);
-          showOk(`送信OK（shotId: ${json.shotId.slice(0,8)}…）`);
-
-          // 次の入力へ：コースだけリセット（必要ならresultもリセットOK）
-          state.course9 = 0;
-          setStatus("準備OK");
-        }catch(e){
-          showMsg(e.message || String(e));
-          setStatus("エラー");
-        }finally{
-          $("sendBtn").disabled = false;
-        }
-      });
-
-      syncPills();
-      setStatus("準備OK");
+        setStatus('セッションを作成しました', 'ok');
+      }catch(err){
+        setStatus(err.message, 'ng');
+      }
     }
 
-    $("btnSearch").addEventListener("click", searchShots);
+    function resetSteps(){
+      state.selectedGoaliePos = '';
+      state.selectedShooterArea = '';
+      state.selectedResult = '';
+      state.selectedCourse9 = '';
+      setChipGroup('goaliePosChips', '');
+      setChipGroup('shooterAreaChips', '');
+      setChipGroup('resultChips', '');
+      [...$('courseGrid').querySelectorAll('.gridCell')].forEach(el => el.classList.remove('active'));
+      $('shotNote').value = '';
+    }
 
-async function searchShots(){
-  clearMsg();
-  try{
-    const res = await apiGetJSON({
-      action: "getShots",
-      startDate: $("fStart").value || "",
-      endDate: $("fEnd").value || "",
-      goalieId: $("fGoalie").value || "",
-      menuId: $("fMenu").value || "",
-      // 事故防止で「今のセッションだけ」にしたいなら下をON
-      // sessionId: state.sessionId,
-      limit: 300
-    });
-    renderShotList(res.shots || []);
-    showOk(`検索OK：${(res.shots||[]).length}件`);
-  }catch(e){
-    showMsg(String(e.message || e));
-  }
-}
+    async function sendShot(){
+      const inputBy = $('inputBy').value.trim();
+      const date = $('dateInput').value;
+      const sessionId = $('sessionSelect').value;
+      const session = state.sessions.find(s => s.sessionId === sessionId);
+      const menuId = session ? session.menuId : '';
+      const goalieId = $('goalieSelect').value;
+      const note = $('shotNote').value.trim();
 
-function renderShotList(shots){
-  const box = $("shotList");
-  if(!shots.length){
-    box.innerHTML = `<div class="warn">該当データなし</div>`;
-    return;
-  }
+      if(!inputBy){
+        setStatus('入力者名を入力してください', 'ng');
+        return;
+      }
+      if(!date){
+        setStatus('日付を入力してください', 'ng');
+        return;
+      }
+      if(!sessionId){
+        setStatus('セッションを選択してください', 'ng');
+        return;
+      }
+      if(!goalieId){
+        setStatus('ゴーリーを選択してください', 'ng');
+        return;
+      }
+      if(!state.selectedGoaliePos){
+        setStatus('ゴーリー位置を選択してください', 'ng');
+        return;
+      }
+      if(!state.selectedShooterArea){
+        setStatus('シューターエリアを選択してください', 'ng');
+        return;
+      }
+      if(!state.selectedResult){
+        setStatus('結果を選択してください', 'ng');
+        return;
+      }
+      if(!state.selectedCourse9){
+        setStatus('コースを選択してください', 'ng');
+        return;
+      }
 
-  box.innerHTML = shots.map(s=>{
-    const t = new Date(s.timestamp);
-    const tText = isFinite(t.getTime()) ? t.toLocaleString("ja-JP") : s.timestamp;
+      $('sendBtn').disabled = true;
+      setStatus('送信しています…');
 
-    return `
-      <div class="card" style="padding:10px;margin-top:8px">
-        <div style="font-weight:900">${escapeHtml(tText)}</div>
-        <div style="font-size:12px;color:rgba(255,255,255,.75);margin-top:4px">
-          menu:${escapeHtml(s.menuId)} / goalie:${escapeHtml(s.goalieId)}(${escapeHtml(s.goaliePos)})
-          / ${escapeHtml(s.result)} / course:${s.course9} / area:${s.shooterArea}
-        </div>
-        <div style="display:flex;gap:10px;margin-top:8px">
-          <button class="btn" type="button" onclick="deleteShotUI('${s.shotId}')">この1件を取り消し</button>
-        </div>
-        <div style="font-size:11px;color:rgba(255,255,255,.6);margin-top:6px">
-          shotId: ${escapeHtml(s.shotId)}
-        </div>
-      </div>
-    `;
-  }).join("");
-}
+      try{
+        const res = await apiJsonp({
+          action:'addShot',
+          date,
+          sessionId,
+          menuId,
+          goalieId,
+          goaliePos: state.selectedGoaliePos,
+          shooterArea: state.selectedShooterArea,
+          result: state.selectedResult,
+          course9: state.selectedCourse9,
+          inputBy,
+          note
+        });
 
-window.deleteShotUI = async (shotId)=>{
-  clearMsg();
-  try{
-    await apiGetJSON({ action:"deleteShot", shotId, deletedBy:"web" });
-    showOk("取り消ししました");
-    searchShots(); // 一覧更新
-  }catch(e){
-    showMsg(String(e.message || e));
-  }
-};
+        if(!res.ok) throw new Error(res.error || '送信に失敗しました');
 
-function escapeHtml(s){
-  return String(s||"")
-    .replaceAll("&","&amp;")
-    .replaceAll("<","&lt;")
-    .replaceAll(">","&gt;")
-    .replaceAll('"',"&quot;")
-    .replaceAll("'","&#39;");
-}
-    
-    $("btnUndoLast").addEventListener("click", undoLast);
+        await loadRecentShots();
+        setStatus(`送信OK（${res.shotId}）`, 'ok');
+        resetSteps();
+      }catch(err){
+        setStatus(err.message, 'ng');
+      }finally{
+        $('sendBtn').disabled = false;
+      }
+    }
 
-    init().catch(e=>{
-      showMsg(e.message || String(e));
-      setStatus("エラー");
-    });
+    async function undoLast(){
+      const sessionId = $('sessionSelect').value;
+      const inputBy = $('inputBy').value.trim() || 'unknown';
+
+      if(!sessionId){
+        setStatus('セッションを選択してください', 'ng');
+        return;
+      }
+
+      setStatus('直前データを取り消しています…');
+      try{
+        const res = await apiJsonp({
+          action:'undoLastShot',
+          sessionId,
+          deletedBy: inputBy
+        });
+        if(!res.ok) throw new Error(res.error || '取り消しに失敗しました');
+        await loadRecentShots();
+        setStatus('直前データを取り消しました', 'ok');
+      }catch(err){
+        setStatus(err.message, 'ng');
+      }
+    }
+
+    function escapeHtml(str){
+      return String(str ?? '')
+        .replaceAll('&','&amp;')
+        .replaceAll('<','&lt;')
+        .replaceAll('>','&gt;')
+        .replaceAll('"','&quot;')
+        .replaceAll("'","&#39;");
+    }
+
+    function isTruthyActive(v){
+        const s = String(v ?? '').trim().toLowerCase();
+        return s === 'true' || s === 'active' || s === '1' || s === 'yes';
+    }
+
+    function bindTabs(){
+      document.querySelectorAll('.tabBtn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          document.querySelectorAll('.tabBtn').forEach(b => b.classList.remove('active'));
+          document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+          btn.classList.add('active');
+          $(btn.dataset.tab).classList.add('active');
+        });
+      });
+    }
+
+    function bindEvents(){
+      bindChipGroup('goaliePosChips', (v) => {
+        state.selectedGoaliePos = v;
+        setChipGroup('goaliePosChips', v);
+      });
+
+      bindChipGroup('shooterAreaChips', (v) => {
+        state.selectedShooterArea = v;
+        setChipGroup('shooterAreaChips', v);
+      });
+
+      bindChipGroup('resultChips', (v) => {
+        state.selectedResult = v;
+        setChipGroup('resultChips', v);
+      });
+
+      $('courseGrid').addEventListener('click', (e) => {
+        const btn = e.target.closest('.gridCell');
+        if(!btn) return;
+        state.selectedCourse9 = btn.dataset.value;
+        [...$('courseGrid').querySelectorAll('.gridCell')].forEach(el => {
+          el.classList.toggle('active', el.dataset.value === state.selectedCourse9);
+        });
+      });
+
+      $('addGoalieBtn').addEventListener('click', addGoalie);
+      $('addMenuBtn').addEventListener('click', addMenu);
+      $('createSessionBtn').addEventListener('click', createSession);
+      $('sendBtn').addEventListener('click', sendShot);
+      $('undoBtn').addEventListener('click', undoLast);
+
+      $('dateInput').addEventListener('change', async () => {
+        updateCurrentBox();
+        await loadSessions($('dateInput').value);
+      });
+      $('sessionSelect').addEventListener('change', async () => {
+        updateCurrentBox();
+        await loadRecentShots();
+      });
+      $('goalieSelect').addEventListener('change', updateCurrentBox);
+      $('inputBy').addEventListener('input', updateCurrentBox);
+
+      $('sessionDate').addEventListener('change', () => {
+        if(!$('dateInput').value) $('dateInput').value = $('sessionDate').value;
+      });
+    }
+
+    async function init(){
+      bindTabs();
+      bindEvents();
+
+      $('dateInput').value = todayStr();
+      $('sessionDate').value = todayStr();
+
+      try{
+        setStatus('初期読み込み中…');
+        await apiJsonp({ action:'ping' });
+        await loadGoalies();
+        await loadMenus();
+        await loadSessions(todayStr(), '');
+        updateCurrentBox();
+        setStatus('準備完了', 'ok');
+      }catch(err){
+        setStatus(err.message || '初期化に失敗しました', 'ng');
+      }
+    }
+
+    init();
   </script>
 </body>
 </html>
