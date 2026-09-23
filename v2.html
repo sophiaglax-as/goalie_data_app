@@ -834,7 +834,11 @@
       if(!shotId) return;
       if(!confirm('この1件を削除しますか？\n削除したデータは通常の集計には含まれなくなります。')) return;
 
-      const deletedBy = $('inputBy').value.trim() || 'data-list';
+      const deletedBy = $('inputBy').value.trim();
+      if(!deletedBy){
+        alert('削除者を記録するため、入力タブで入力者名を入力してください。');
+        return;
+      }
       setStatus('データを削除しています…');
 
       try{
