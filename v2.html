@@ -71,7 +71,7 @@
     }
     .tabs{
       display:grid;
-      grid-template-columns:repeat(4,1fr);
+      grid-template-columns:repeat(5,1fr);
       gap:8px;
     }
     .tabBtn{
@@ -315,6 +315,7 @@
         <button class="tabBtn" data-tab="sessionTab">セッション</button>
         <button class="tabBtn" data-tab="goalieTab">ゴーリー</button>
         <button class="tabBtn" data-tab="menuTab">メニュー</button>
+        <button class="tabBtn" data-tab="dataTab">データ一覧</button>
       </div>
     </section>
 
@@ -483,6 +484,30 @@
 
       <button id="addMenuBtn" class="btn btnPrimary">追加</button>
       <div class="miniList" id="menuList"></div>
+    </section>
+
+    <!-- データ一覧 -->
+    <section id="dataTab" class="card tab">
+      <h2 class="sectionTitle">データ一覧・削除</h2>
+      <div class="row two">
+        <div>
+          <label for="listFrom">開始日</label>
+          <input id="listFrom" type="date" />
+        </div>
+        <div>
+          <label for="listTo">終了日</label>
+          <input id="listTo" type="date" />
+        </div>
+      </div>
+      <div class="row">
+        <div>
+          <label for="listGoalie">ゴーリー</label>
+          <select id="listGoalie"><option value="">全員</option></select>
+        </div>
+      </div>
+      <button id="searchShotsBtn" class="btn btnPrimary">データを検索</button>
+      <div class="muted" style="margin-top:8px;">※2か月より古く圧縮済みのデータは、個別ショットとしては表示・削除できません。</div>
+      <div class="miniList" id="shotList"><div class="muted">条件を指定して検索してください</div></div>
     </section>
   </div>
 
@@ -739,6 +764,90 @@
         </div>
       `).join('') : `<div class="muted">まだ入力がありません</div>`;
     }
+
+    async function loadShotList(){
+      const from = $('listFrom').value;
+      const to = $('listTo').value;
+      const goalieId = $('listGoalie').value;
+
+      if(!from || !to){
+        setStatus('開始日と終了日を選択してください', 'ng');
+        return;
+      }
+      if(from > to){
+        setStatus('開始日は終了日以前にしてください', 'ng');
+        return;
+      }
+
+      $('searchShotsBtn').disabled = true;
+      $('shotList').innerHTML = '<div class="muted">検索中…</div>';
+      setStatus('データを検索しています…');
+
+      try{
+        const res = await apiJsonp({ action:'getShotList', from, to, limit:300 });
+        if(!res.ok) throw new Error(res.error || 'データ取得に失敗しました');
+
+        let items = res.items || [];
+        if(goalieId){
+          items = items.filter(s => String(s.goalieId || '') === goalieId);
+        }
+
+        renderShotList(items);
+        setStatus(`${items.length}件表示しました`, 'ok');
+      }catch(err){
+        $('shotList').innerHTML = '<div class="muted">取得できませんでした</div>';
+        setStatus(err.message, 'ng');
+      }finally{
+        $('searchShotsBtn').disabled = false;
+      }
+    }
+
+    function renderShotList(items){
+      const wrap = $('shotList');
+      if(!items.length){
+        wrap.innerHTML = '<div class="muted">該当するデータはありません</div>';
+        return;
+      }
+
+      wrap.innerHTML = items.map(s => {
+        const goalie = state.goalies.find(g => String(g.goalieId) === String(s.goalieId));
+        const menu = state.menus.find(m => String(m.menuId) === String(s.menuId));
+        const goalieName = goalie ? goalie.name : (s.goalieId || '');
+        const menuName = menu ? menu.menuName : (s.menuId || '');
+        const resultText = s.result === 'save' ? 'セーブ' : (s.result === 'goal' ? '成功' : s.result);
+        return `
+          <div class="miniItem">
+            <div class="miniTop">
+              <div class="miniName">${escapeHtml(s.date || '')} / ${escapeHtml(goalieName)}</div>
+              <span class="badge">${escapeHtml(resultText || '')}</span>
+            </div>
+            <div class="small">${escapeHtml(menuName)} / 位置:${escapeHtml(s.goaliePos || '')} / エリア:${escapeHtml(s.shooterArea || '')} / コース:${escapeHtml(s.course9 || '')}</div>
+            <div class="small muted" style="margin-top:4px;">入力:${escapeHtml(s.inputBy || '')}${s.note ? ' / メモ:' + escapeHtml(s.note) : ''}</div>
+            <div style="margin-top:8px;">
+              <button type="button" class="btn btnDanger small" onclick="deleteShotFromList('${escapeHtml(s.shotId || '')}')">このデータを削除</button>
+            </div>
+          </div>`;
+      }).join('');
+    }
+
+    async function deleteShotFromList(shotId){
+      if(!shotId) return;
+      if(!confirm('この1件を削除しますか？\n削除したデータは通常の集計には含まれなくなります。')) return;
+
+      const deletedBy = $('inputBy').value.trim() || 'data-list';
+      setStatus('データを削除しています…');
+
+      try{
+        const res = await apiJsonp({ action:'deleteShot', shotId, deletedBy });
+        if(!res.ok) throw new Error(res.error || '削除に失敗しました');
+        await loadShotList();
+        await loadRecentShots();
+        setStatus('データを削除しました', 'ok');
+      }catch(err){
+        setStatus(err.message, 'ng');
+      }
+    }
+    window.deleteShotFromList = deleteShotFromList;
 
     async function addGoalie(){
       const name = $('goalieName').value.trim();
@@ -1011,6 +1120,7 @@
       $('createSessionBtn').addEventListener('click', createSession);
       $('sendBtn').addEventListener('click', sendShot);
       $('undoBtn').addEventListener('click', undoLast);
+      $('searchShotsBtn').addEventListener('click', loadShotList);
 
       $('dateInput').addEventListener('change', async () => {
         updateCurrentBox();
@@ -1034,6 +1144,8 @@
 
       $('dateInput').value = todayStr();
       $('sessionDate').value = todayStr();
+      $('listFrom').value = todayStr();
+      $('listTo').value = todayStr();
 
       try{
         setStatus('初期読み込み中…');
