@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-  <title>Goalie Data App</title>
+  <title>Goalie Data App V2.2</title>
   <style>
     :root{
       --navy:#0b1f44;
@@ -71,7 +71,7 @@
     }
     .tabs{
       display:grid;
-      grid-template-columns:repeat(4,1fr);
+      grid-template-columns:repeat(5,1fr);
       gap:8px;
     }
     .tabBtn{
@@ -164,6 +164,8 @@
     .btn:disabled{
       opacity:.45;
       cursor:not-allowed;
+      filter:saturate(.55);
+      transform:none;
     }
     .btnRow{
       display:grid;
@@ -306,7 +308,7 @@
   <div class="app">
     <section class="hero">
       <h1>Goalie Data App</h1>
-      <p>ゴーリー登録・メニュー登録・セッション作成・4ステップ入力</p>
+      <p>ゴーリー登録・メニュー登録・セッション作成・4ステップ入力 / V2.2</p>
     </section>
 
     <section class="card">
@@ -315,6 +317,7 @@
         <button class="tabBtn" data-tab="sessionTab">セッション</button>
         <button class="tabBtn" data-tab="goalieTab">ゴーリー</button>
         <button class="tabBtn" data-tab="menuTab">メニュー</button>
+        <button class="tabBtn" data-tab="dataTab">データ一覧</button>
       </div>
     </section>
 
@@ -433,7 +436,7 @@
       <div class="row">
         <div>
           <label for="sessionTitle">セッション名</label>
-          <input id="sessionTitle" type="text" placeholder="例：午前練習 / 6on6 / 1on1" />
+          <input id="sessionTitle" type="text" placeholder="例：トップ / サブ / 1年生" />
         </div>
       </div>
 
@@ -470,7 +473,7 @@
       <div class="row two">
         <div>
           <label for="menuName">メニュー名</label>
-          <input id="menuName" type="text" placeholder="例：6on6" />
+          <input id="menuName" type="text" placeholder="例：1on1" />
         </div>
         <div>
           <label for="groupType">種別</label>
@@ -484,10 +487,36 @@
       <button id="addMenuBtn" class="btn btnPrimary">追加</button>
       <div class="miniList" id="menuList"></div>
     </section>
+
+    <!-- データ一覧 -->
+    <section id="dataTab" class="card tab">
+      <h2 class="sectionTitle">データ一覧・削除</h2>
+      <div class="row two">
+        <div>
+          <label for="listFrom">開始日</label>
+          <input id="listFrom" type="date" />
+        </div>
+        <div>
+          <label for="listTo">終了日</label>
+          <input id="listTo" type="date" />
+        </div>
+      </div>
+      <div class="row">
+        <div>
+          <label for="listGoalie">ゴーリー</label>
+          <select id="listGoalie"><option value="">全員</option></select>
+        </div>
+      </div>
+      <button id="searchShotsBtn" class="btn btnPrimary">データを検索</button>
+      <div class="muted" style="margin-top:8px;">※2か月より古く圧縮済みのデータは、個別ショットとしては表示・削除できません。</div>
+      <div class="miniList" id="shotList"><div class="muted">条件を指定して検索してください</div></div>
+    </section>
   </div>
 
   <script>
-    const SERVICE_URL = 'https://script.google.com/macros/s/AKfycbxav1MVJSEYajljqsSJgNbD17U2iNi_IxQw-VoQJBqWlLMdou82gfCEjlkmP3ds_tUN/exec';
+    const SERVICE_URL = 'https://script.google.com/macros/s/AKfycbxAcCQtnH-b9ewGXa6gpPuhBJA0PqaHEF3nbIB74GGkj9eVO_P2YBdTkIOGCmJmREtQ/exec';
+    const READ_TIMEOUT_MS = 20000;
+    const WRITE_TIMEOUT_MS = 20000;
 
     const state = {
       goalies: [],
@@ -497,6 +526,10 @@
       selectedShooterArea: '',
       selectedResult: '',
       selectedCourse9: '',
+      recentRequestSeq: 0,
+      shotListRequestSeq: 0,
+      recentInFlightKey: '',
+      recentInFlightPromise: null
     };
 
     const $ = (id) => document.getElementById(id);
@@ -515,41 +548,71 @@
       return `${y}-${m}-${day}`;
     }
 
-    function apiJsonp(params = {}){
-      return new Promise((resolve, reject) => {
-        const callbackName = 'cb_' + Date.now() + '_' + Math.floor(Math.random() * 100000);
-        params.callback = callbackName;
+    function daysAgoStr(days){
+      const d = new Date();
+      d.setDate(d.getDate() - days);
+      const y = d.getFullYear();
+      const m = String(d.getMonth()+1).padStart(2,'0');
+      const day = String(d.getDate()).padStart(2,'0');
+      return `${y}-${m}-${day}`;
+    }
 
-        const query = new URLSearchParams(params).toString();
+    function apiJsonpOnce(params = {}, timeoutMs = READ_TIMEOUT_MS){
+      return new Promise((resolve, reject) => {
+        const callbackName = 'cb_' + Date.now() + '_' + Math.floor(Math.random() * 1000000);
+        const queryParams = { ...params, callback: callbackName };
+        const query = new URLSearchParams(queryParams).toString();
         const script = document.createElement('script');
         script.src = `${SERVICE_URL}?${query}`;
 
         let done = false;
+        let timer = null;
+
         const cleanup = () => {
+          if(done) return;
           done = true;
+          if(timer) clearTimeout(timer);
           try { delete window[callbackName]; } catch(e){}
-          if (script.parentNode) script.parentNode.removeChild(script);
+          if(script.parentNode) script.parentNode.removeChild(script);
         };
 
         window[callbackName] = (data) => {
+          if(done) return;
           cleanup();
           resolve(data);
         };
 
         script.onerror = () => {
+          if(done) return;
           cleanup();
           reject(new Error('通信に失敗しました'));
         };
 
-        document.body.appendChild(script);
+        timer = setTimeout(() => {
+          if(done) return;
+          cleanup();
+          const err = new Error('通信がタイムアウトしました');
+          err.code = 'TIMEOUT';
+          reject(err);
+        }, timeoutMs);
 
-        setTimeout(() => {
-          if (!done) {
-            cleanup();
-            reject(new Error('タイムアウトしました'));
-          }
-        }, 12000);
+        document.body.appendChild(script);
       });
+    }
+
+    // GET/JSONP の読み取りだけは1回だけ再試行する。
+    // 書き込みは重複登録防止のため自動再試行しない。
+    async function apiRead(params = {}){
+      try{
+        return await apiJsonpOnce(params, READ_TIMEOUT_MS);
+      }catch(firstErr){
+        await new Promise(r => setTimeout(r, 350));
+        return await apiJsonpOnce(params, READ_TIMEOUT_MS);
+      }
+    }
+
+    async function apiWrite(params = {}){
+      return await apiJsonpOnce(params, WRITE_TIMEOUT_MS);
     }
 
     function setChipGroup(containerId, value){
@@ -569,22 +632,35 @@
     }
 
     function renderGoalies(){
+      const currentGoalieId = $('goalieSelect').value;
+      const currentListGoalieId = $('listGoalie').value;
       const activeGoalies = state.goalies.filter(g => String(g.status) === 'active');
-      const goalieSelect = $('goalieSelect');
-      goalieSelect.innerHTML = activeGoalies.length
-        ? activeGoalies.map(g => `<option value="${g.goalieId}">${escapeHtml(g.name)}</option>`).join('')
+
+      $('goalieSelect').innerHTML = activeGoalies.length
+        ? activeGoalies.map(g => `<option value="${escapeHtml(g.goalieId)}">${escapeHtml(g.name)}</option>`).join('')
         : `<option value="">ゴーリー未登録</option>`;
 
-      const list = $('goalieList');
-      list.innerHTML = state.goalies.length ? state.goalies.map(g => `
+      if(activeGoalies.some(g => String(g.goalieId) === String(currentGoalieId))){
+        $('goalieSelect').value = currentGoalieId;
+      }
+
+      $('listGoalie').innerHTML =
+        `<option value="">全員</option>` +
+        state.goalies.map(g => `<option value="${escapeHtml(g.goalieId)}">${escapeHtml(g.name)}</option>`).join('');
+
+      if(state.goalies.some(g => String(g.goalieId) === String(currentListGoalieId))){
+        $('listGoalie').value = currentListGoalieId;
+      }
+
+      $('goalieList').innerHTML = state.goalies.length ? state.goalies.map(g => `
         <div class="miniItem">
           <div class="miniTop">
             <div class="miniName">${escapeHtml(g.name)}</div>
-            <span class="badge ${g.status === 'active' ? 'active' : 'inactive'}">${g.status}</span>
+            <span class="badge ${g.status === 'active' ? 'active' : 'inactive'}">${escapeHtml(g.status)}</span>
           </div>
           <div class="small muted">${escapeHtml(g.goalieId || '')}</div>
           <div style="margin-top:8px;">
-            <button class="btn btnSub small" onclick="toggleGoalie('${g.goalieId}','${g.status === 'active' ? 'inactive' : 'active'}')">
+            <button class="btn btnSub small" onclick="toggleGoalie('${escapeJs(g.goalieId)}','${g.status === 'active' ? 'inactive' : 'active'}')">
               ${g.status === 'active' ? '非表示にする' : '表示に戻す'}
             </button>
           </div>
@@ -595,97 +671,90 @@
     }
 
     function renderMenus(){
-        const activeMenus = state.menus.filter(m => isTruthyActive(m.isActive));
+      const currentMenuId = $('sessionMenu').value;
+      const activeMenus = state.menus.filter(m => isTruthyActive(m.isActive));
 
-  $('sessionMenu').innerHTML = activeMenus.length
-    ? activeMenus.map(m => `<option value="${m.menuId}">${escapeHtml(m.menuName)}</option>`).join('')
-    : `<option value="">メニュー未登録</option>`;
-    const list = $('menuList');
-    list.innerHTML = state.menus.length ? state.menus.map(m => {
+      $('sessionMenu').innerHTML = activeMenus.length
+        ? activeMenus.map(m => `<option value="${escapeHtml(m.menuId)}">${escapeHtml(m.menuName)}</option>`).join('')
+        : `<option value="">メニュー未登録</option>`;
+
+      if(activeMenus.some(m => String(m.menuId) === String(currentMenuId))){
+        $('sessionMenu').value = currentMenuId;
+      }
+
+      $('menuList').innerHTML = state.menus.length ? state.menus.map(m => {
         const active = isTruthyActive(m.isActive);
-        return `
-        <div class="miniItem">
-            <div class="miniTop">
-                <div class="miniName">${escapeHtml(m.menuName)}</div>
-                <span class="badge ${active ? 'active' : 'inactive'}">${active ? 'active' : 'inactive'}</span>
-                </div>
-                <div class="small muted">${escapeHtml(m.groupType || '')}</div>
-                <div style="margin-top:8px;">
-                    <button
-                    type="button"
-                    class="btn btnSub small"
-                    onclick="toggleMenu('${m.menuId}','${active ? 'false' : 'true'}')">
-                    ${active ? '非表示にする' : '表示に戻す'}
-                    </button>
-                  </div>
-                </div>
-                `;
-            }).join('') : `<div class="muted">まだ登録がありません</div>`;
-        }
-
-        function renderSessions(selectedSessionId = ''){
-  const sessions = state.sessions || [];
-  const sessionSelect = $('sessionSelect');
-
-  sessionSelect.innerHTML = sessions.length
-    ? sessions.map(s => {
-        const menu = state.menus.find(m => m.menuId === s.menuId);
-        const menuName = menu ? menu.menuName : s.menuId;
-        return `<option value="${s.sessionId}" data-menuid="${s.menuId}">
-          ${escapeHtml(s.title)} / ${escapeHtml(menuName)}
-        </option>`;
-      }).join('')
-    : `<option value="">先にセッションを作成してください</option>`;
-
-  if (sessions.length) {
-    const keepId =
-      selectedSessionId ||
-      sessionSelect.dataset.pendingSessionId ||
-      sessionSelect.value ||
-      '';
-
-    const exists = sessions.some(s => s.sessionId === keepId);
-
-    if (exists) {
-      sessionSelect.value = keepId;
-    } else {
-      sessionSelect.selectedIndex = 0;
-    }
-  }
-
-  sessionSelect.dataset.pendingSessionId = '';
-
-  $('sessionList').innerHTML = state.sessions.length
-    ? state.sessions.map(s => {
-        const menu = state.menus.find(m => m.menuId === s.menuId);
-        const menuName = menu ? menu.menuName : s.menuId;
         return `
           <div class="miniItem">
             <div class="miniTop">
-              <div class="miniName">${escapeHtml(s.title)}</div>
-              <span class="badge">${escapeHtml(s.date)}</span>
+              <div class="miniName">${escapeHtml(m.menuName)}</div>
+              <span class="badge ${active ? 'active' : 'inactive'}">${active ? 'active' : 'inactive'}</span>
             </div>
-            <div class="small muted">${escapeHtml(menuName)}</div>
-          </div>
-        `;
-      }).join('')
-    : `<div class="muted">まだセッションがありません</div>`;
+            <div class="small muted">${escapeHtml(m.groupType || '')}</div>
+            <div style="margin-top:8px;">
+              <button type="button" class="btn btnSub small"
+                onclick="toggleMenu('${escapeJs(m.menuId)}','${active ? 'false' : 'true'}')">
+                ${active ? '非表示にする' : '表示に戻す'}
+              </button>
+            </div>
+          </div>`;
+      }).join('') : `<div class="muted">まだ登録がありません</div>`;
+    }
 
-  updateCurrentBox();
-  loadRecentShots();
-}
+    function renderSessions(selectedSessionId = ''){
+      const sessions = state.sessions || [];
+      const sessionSelect = $('sessionSelect');
+      const previousId = sessionSelect.value;
 
+      sessionSelect.innerHTML = sessions.length
+        ? sessions.map(s => {
+            const menu = state.menus.find(m => String(m.menuId) === String(s.menuId));
+            const menuName = menu ? menu.menuName : s.menuId;
+            return `<option value="${escapeHtml(s.sessionId)}">${escapeHtml(s.title)} / ${escapeHtml(menuName)}</option>`;
+          }).join('')
+        : `<option value="">先にセッションを作成してください</option>`;
+
+      if(sessions.length){
+        const keepId = selectedSessionId || sessionSelect.dataset.pendingSessionId || previousId || '';
+        if(sessions.some(s => String(s.sessionId) === String(keepId))){
+          sessionSelect.value = keepId;
+        }else{
+          sessionSelect.selectedIndex = 0;
+        }
+      }
+
+      sessionSelect.dataset.pendingSessionId = '';
+
+      $('sessionList').innerHTML = sessions.length
+        ? sessions.map(s => {
+            const menu = state.menus.find(m => String(m.menuId) === String(s.menuId));
+            const menuName = menu ? menu.menuName : s.menuId;
+            return `
+              <div class="miniItem">
+                <div class="miniTop">
+                  <div class="miniName">${escapeHtml(s.title)}</div>
+                  <span class="badge">${escapeHtml(formatDateValue(s.date))}</span>
+                </div>
+                <div class="small muted">${escapeHtml(menuName)}</div>
+              </div>`;
+          }).join('')
+        : `<div class="muted">まだセッションがありません</div>`;
+
+      updateCurrentBox();
+      // ここでは recent shots を自動取得しない。
+      // 呼び出し元が必要なときだけ1回取得する。
+    }
 
     function updateCurrentBox(){
       const inputBy = $('inputBy').value.trim() || '未設定';
       const date = $('dateInput').value || '未設定';
 
       const sessionId = $('sessionSelect').value;
-      const session = state.sessions.find(s => s.sessionId === sessionId);
-      const sessionText = session ? `${session.title} (${session.date})` : '未選択';
+      const session = state.sessions.find(s => String(s.sessionId) === String(sessionId));
+      const sessionText = session ? `${session.title} (${formatDateValue(session.date)})` : '未選択';
 
       const goalieId = $('goalieSelect').value;
-      const goalie = state.goalies.find(g => g.goalieId === goalieId);
+      const goalie = state.goalies.find(g => String(g.goalieId) === String(goalieId));
       const goalieText = goalie ? goalie.name : '未選択';
 
       $('viewInputBy').textContent = inputBy;
@@ -695,49 +764,203 @@
     }
 
     async function loadGoalies(){
-      const res = await apiJsonp({ action:'getGoalies' });
-      if(!res.ok) throw new Error(res.error || 'getGoalies failed');
+      const res = await apiRead({ action:'getGoalies' });
+      if(!res.ok) throw new Error(res.error || 'ゴーリー取得に失敗しました');
       state.goalies = res.items || [];
       renderGoalies();
     }
 
     async function loadMenus(){
-      const res = await apiJsonp({ action:'getMenus' });
-      if(!res.ok) throw new Error(res.error || 'getMenus failed');
+      const res = await apiRead({ action:'getMenus' });
+      if(!res.ok) throw new Error(res.error || 'メニュー取得に失敗しました');
       state.menus = res.items || [];
       renderMenus();
     }
 
     async function loadSessions(date='', selectedSessionId = ''){
-      const res = await apiJsonp({ action:'getSessions', date: date || '' });
-      if(!res.ok) throw new Error(res.error || 'getSessions failed');
+      const res = await apiRead({ action:'getSessions', date: date || '' });
+      if(!res.ok) throw new Error(res.error || 'セッション取得に失敗しました');
       state.sessions = res.items || [];
       renderSessions(selectedSessionId);
+      return state.sessions;
     }
 
-    async function loadRecentShots(){
+    async function loadRecentShots(force=false){
       const sessionId = $('sessionSelect').value;
       if(!sessionId){
-        $('recentShots').innerHTML = '';
+        $('recentShots').innerHTML = '<div class="muted">セッションを選択してください</div>';
+        return [];
+      }
+
+      const key = String(sessionId);
+      if(!force && state.recentInFlightPromise && state.recentInFlightKey === key){
+        return state.recentInFlightPromise;
+      }
+
+      const seq = ++state.recentRequestSeq;
+      $('recentShots').innerHTML = '<div class="muted">最近のデータを読み込み中…</div>';
+
+      const promise = (async () => {
+        try{
+          const res = await apiRead({ action:'getRecentShots', sessionId, limit:10 });
+          if(!res.ok) throw new Error(res.error || '最近のデータ取得に失敗しました');
+
+          // 選択セッションが変わった後に古い応答が戻ってきても描画しない。
+          if(seq !== state.recentRequestSeq || String($('sessionSelect').value) !== key){
+            return res.items || [];
+          }
+
+          const items = res.items || [];
+          $('recentShots').innerHTML = items.length ? items.map(s => `
+            <div class="miniItem">
+              <div class="miniTop">
+                <div class="miniName">${escapeHtml(resultLabel(s.result))} / ${escapeHtml(s.course9)}</div>
+                <span class="badge">${escapeHtml(s.timestamp || '')}</span>
+              </div>
+              <div class="small muted">
+                位置:${escapeHtml(s.goaliePos)} / エリア:${escapeHtml(s.shooterArea)} / 入力:${escapeHtml(s.inputBy || '')}
+              </div>
+            </div>
+          `).join('') : `<div class="muted">まだ入力がありません</div>`;
+
+          return items;
+        }catch(err){
+          if(seq === state.recentRequestSeq && String($('sessionSelect').value) === key){
+            $('recentShots').innerHTML = `<div class="muted">最近のデータを取得できませんでした。必要ならセッションを選び直してください。</div>`;
+          }
+          throw err;
+        }finally{
+          if(state.recentInFlightKey === key){
+            state.recentInFlightKey = '';
+            state.recentInFlightPromise = null;
+          }
+        }
+      })();
+
+      state.recentInFlightKey = key;
+      state.recentInFlightPromise = promise;
+      return promise;
+    }
+
+    async function refreshRecentQuietly(){
+      try{
+        await loadRecentShots(true);
+      }catch(err){
+        // 保存・削除・取り消し自体の成功表示を、再読込失敗で上書きしない。
+      }
+    }
+
+    async function loadShotList(){
+      const from = $('listFrom').value;
+      const to = $('listTo').value;
+      const goalieId = $('listGoalie').value;
+
+      if(from && to && from > to){
+        setStatus('開始日は終了日以前にしてください', 'ng');
         return;
       }
-      const res = await apiJsonp({ action:'getRecentShots', sessionId, limit:10 });
-      if(!res.ok){
-        $('recentShots').innerHTML = '';
+
+      const seq = ++state.shotListRequestSeq;
+      $('shotList').innerHTML = '<div class="muted">検索中…</div>';
+      setStatus('データを検索しています…');
+
+      const params = { action:'getShotList', limit:300 };
+      if(from) params.from = from;
+      if(to) params.to = to;
+      if(goalieId) params.goalieId = goalieId;
+
+      try{
+        const res = await apiRead(params);
+        if(!res.ok) throw new Error(res.error || 'データ取得に失敗しました');
+        if(seq !== state.shotListRequestSeq) return;
+
+        let items = res.items || [];
+        // GAS側が goalieId フィルタを無視する実装でも画面側で保証する。
+        if(goalieId){
+          items = items.filter(s => String(s.goalieId || '') === String(goalieId));
+        }
+
+        renderShotList(items);
+        const limitedText = res.scanLimited ? '（検索上限に達しました）' : '';
+        setStatus(`${items.length}件表示しました${limitedText}`, 'ok');
+      }catch(err){
+        if(seq !== state.shotListRequestSeq) return;
+        $('shotList').innerHTML = '<div class="muted">取得できませんでした</div>';
+        setStatus(err.message || 'データ取得に失敗しました', 'ng');
+      }
+    }
+
+    function renderShotList(items){
+      const wrap = $('shotList');
+      if(!items.length){
+        wrap.innerHTML = '<div class="muted">該当するデータはありません</div>';
         return;
       }
-      const items = res.items || [];
-      $('recentShots').innerHTML = items.length ? items.map(s => `
-        <div class="miniItem">
-          <div class="miniTop">
-            <div class="miniName">${escapeHtml(s.result)} / ${escapeHtml(s.course9)}</div>
-            <span class="badge">${escapeHtml(s.timestamp || '')}</span>
-          </div>
-          <div class="small muted">
-            位置:${escapeHtml(s.goaliePos)} / エリア:${escapeHtml(s.shooterArea)} / 入力:${escapeHtml(s.inputBy || '')}
-          </div>
-        </div>
-      `).join('') : `<div class="muted">まだ入力がありません</div>`;
+
+      wrap.innerHTML = items.map(s => {
+        const goalie = state.goalies.find(g => String(g.goalieId) === String(s.goalieId));
+        const menu = state.menus.find(m => String(m.menuId) === String(s.menuId));
+        const goalieName = goalie ? goalie.name : (s.goalieId || '');
+        const menuName = menu ? menu.menuName : (s.menuId || '');
+        return `
+          <div class="miniItem">
+            <div class="miniTop">
+              <div class="miniName">${escapeHtml(formatDateValue(s.date))} / ${escapeHtml(goalieName)}</div>
+              <span class="badge">${escapeHtml(resultLabel(s.result))}</span>
+            </div>
+            <div class="small">${escapeHtml(menuName)} / 位置:${escapeHtml(s.goaliePos || '')} / エリア:${escapeHtml(s.shooterArea || '')} / コース:${escapeHtml(s.course9 || '')}</div>
+            <div class="small muted" style="margin-top:4px;">入力:${escapeHtml(s.inputBy || '')}${s.note ? ' / メモ:' + escapeHtml(s.note) : ''}</div>
+            <div style="margin-top:8px;">
+              <button type="button" class="btn btnDanger small"
+                onclick="deleteShotFromList('${escapeJs(s.shotId || '')}', this)">このデータを削除</button>
+            </div>
+          </div>`;
+      }).join('');
+    }
+
+    async function deleteShotFromList(shotId, button){
+      if(!shotId) return;
+      if(!confirm('この1件を削除しますか？\n削除したデータは通常の集計には含まれなくなります。')) return;
+
+      const deletedBy = $('inputBy').value.trim();
+      if(!deletedBy){
+        alert('削除者を記録するため、入力タブで入力者名を入力してください。');
+        return;
+      }
+
+      if(button){
+        button.disabled = true;
+        button.textContent = '削除中…';
+      }
+      setStatus('データを削除しています…');
+
+      try{
+        const res = await apiWrite({ action:'deleteShot', shotId, deletedBy });
+        if(!res.ok) throw new Error(res.error || '削除に失敗しました');
+
+        setStatus('データを削除しました', 'ok');
+        // 成功した書き込みを再読込失敗で「削除失敗」にしない。
+        loadShotList().catch(() => {});
+        refreshRecentQuietly();
+      }catch(err){
+        if(err.code === 'TIMEOUT'){
+          setStatus('通信が遅れています。削除結果をデータ一覧で再確認してください。', 'ng');
+        }else{
+          setStatus(err.message || '削除に失敗しました', 'ng');
+        }
+        if(button){
+          button.disabled = false;
+          button.textContent = 'このデータを削除';
+        }
+      }
+    }
+    window.deleteShotFromList = deleteShotFromList;
+
+    function setButtonBusy(buttonId, busy, busyText, normalText){
+      const btn = $(buttonId);
+      if(!btn) return;
+      btn.disabled = busy;
+      btn.textContent = busy ? busyText : normalText;
     }
 
     async function addGoalie(){
@@ -746,26 +969,32 @@
         setStatus('ゴーリー名を入力してください', 'ng');
         return;
       }
+
+      setButtonBusy('addGoalieBtn', true, '追加中…', '追加');
       setStatus('ゴーリーを追加しています…');
+
       try{
-        const res = await apiJsonp({ action:'addGoalie', name });
+        const res = await apiWrite({ action:'addGoalie', name });
         if(!res.ok) throw new Error(res.error || '追加に失敗しました');
         $('goalieName').value = '';
-        await loadGoalies();
         setStatus('ゴーリーを追加しました', 'ok');
+        loadGoalies().catch(() => {});
       }catch(err){
-        setStatus(err.message, 'ng');
+        setStatus(writeErrorMessage(err, '追加結果'), 'ng');
+      }finally{
+        setButtonBusy('addGoalieBtn', false, '追加中…', '追加');
       }
     }
 
     async function toggleGoalie(goalieId, status){
       try{
-        const res = await apiJsonp({ action:'toggleGoalieStatus', goalieId, status });
+        setStatus('ゴーリー表示状態を更新しています…');
+        const res = await apiWrite({ action:'toggleGoalieStatus', goalieId, status });
         if(!res.ok) throw new Error(res.error || '更新に失敗しました');
-        await loadGoalies();
         setStatus('ゴーリー表示状態を更新しました', 'ok');
+        loadGoalies().catch(() => {});
       }catch(err){
-        setStatus(err.message, 'ng');
+        setStatus(writeErrorMessage(err, '更新結果'), 'ng');
       }
     }
     window.toggleGoalie = toggleGoalie;
@@ -777,32 +1006,37 @@
         setStatus('メニュー名を入力してください', 'ng');
         return;
       }
+
+      setButtonBusy('addMenuBtn', true, '追加中…', '追加');
       setStatus('メニューを追加しています…');
+
       try{
-        const res = await apiJsonp({ action:'addMenu', menuName, groupType });
+        const res = await apiWrite({ action:'addMenu', menuName, groupType });
         if(!res.ok) throw new Error(res.error || '追加に失敗しました');
         $('menuName').value = '';
-        await loadMenus();
         setStatus('メニューを追加しました', 'ok');
+        loadMenus().catch(() => {});
       }catch(err){
-        setStatus(err.message, 'ng');
+        setStatus(writeErrorMessage(err, '追加結果'), 'ng');
+      }finally{
+        setButtonBusy('addMenuBtn', false, '追加中…', '追加');
       }
     }
 
     async function toggleMenu(menuId, isActive){
-        try{
-            const res = await apiJsonp({ action:'toggleMenuActive', menuId, isActive });
-            if(!res.ok) throw new Error(res.error || '更新に失敗しました');
-            await loadMenus();
-            await loadSessions($('dateInput').value);
-            
-            renderMenus();
-            renderSessions();
-            
-            setStatus('メニュー表示状態を更新しました', 'ok');
-        }catch(err){
-            setStatus(err.message, 'ng');
-        }
+      try{
+        setStatus('メニュー表示状態を更新しています…');
+        const res = await apiWrite({ action:'toggleMenuActive', menuId, isActive });
+        if(!res.ok) throw new Error(res.error || '更新に失敗しました');
+
+        setStatus('メニュー表示状態を更新しました', 'ok');
+        await loadMenus();
+        const currentSessionId = $('sessionSelect').value;
+        await loadSessions($('dateInput').value, currentSessionId);
+        refreshRecentQuietly();
+      }catch(err){
+        setStatus(writeErrorMessage(err, '更新結果'), 'ng');
+      }
     }
     window.toggleMenu = toggleMenu;
 
@@ -825,26 +1059,31 @@
         return;
       }
 
+      setButtonBusy('createSessionBtn', true, '作成中…', 'セッション作成');
       setStatus('セッションを作成しています…');
+
       try{
-        const res = await apiJsonp({ action:'createSession', date, menuId, title, note });
+        const res = await apiWrite({ action:'createSession', date, menuId, title, note });
         if(!res.ok) throw new Error(res.error || '作成に失敗しました');
 
         $('sessionDate').value = date;
         $('dateInput').value = date;
-
         $('sessionTitle').value = '';
         $('sessionNote').value = '';
 
-        $('dateInput').value = date;
-        $('sessionSelect').dataset.pendingSessionId = res.sessionId;
-        await loadSessions(date, res.sessionId);
-        updateCurrentBox();
-        await loadRecentShots();
-
         setStatus('セッションを作成しました', 'ok');
+
+        try{
+          await loadSessions(date, res.sessionId || '');
+          updateCurrentBox();
+          refreshRecentQuietly();
+        }catch(refreshErr){
+          // セッション作成成功は維持する。
+        }
       }catch(err){
-        setStatus(err.message, 'ng');
+        setStatus(writeErrorMessage(err, '作成結果'), 'ng');
+      }finally{
+        setButtonBusy('createSessionBtn', false, '作成中…', 'セッション作成');
       }
     }
 
@@ -864,49 +1103,25 @@
       const inputBy = $('inputBy').value.trim();
       const date = $('dateInput').value;
       const sessionId = $('sessionSelect').value;
-      const session = state.sessions.find(s => s.sessionId === sessionId);
+      const session = state.sessions.find(s => String(s.sessionId) === String(sessionId));
       const menuId = session ? session.menuId : '';
       const goalieId = $('goalieSelect').value;
       const note = $('shotNote').value.trim();
 
-      if(!inputBy){
-        setStatus('入力者名を入力してください', 'ng');
-        return;
-      }
-      if(!date){
-        setStatus('日付を入力してください', 'ng');
-        return;
-      }
-      if(!sessionId){
-        setStatus('セッションを選択してください', 'ng');
-        return;
-      }
-      if(!goalieId){
-        setStatus('ゴーリーを選択してください', 'ng');
-        return;
-      }
-      if(!state.selectedGoaliePos){
-        setStatus('ゴーリー位置を選択してください', 'ng');
-        return;
-      }
-      if(!state.selectedShooterArea){
-        setStatus('シューターエリアを選択してください', 'ng');
-        return;
-      }
-      if(!state.selectedResult){
-        setStatus('結果を選択してください', 'ng');
-        return;
-      }
-      if(!state.selectedCourse9){
-        setStatus('コースを選択してください', 'ng');
-        return;
-      }
+      if(!inputBy){ setStatus('入力者名を入力してください', 'ng'); return; }
+      if(!date){ setStatus('日付を入力してください', 'ng'); return; }
+      if(!sessionId){ setStatus('セッションを選択してください', 'ng'); return; }
+      if(!goalieId){ setStatus('ゴーリーを選択してください', 'ng'); return; }
+      if(!state.selectedGoaliePos){ setStatus('ゴーリー位置を選択してください', 'ng'); return; }
+      if(!state.selectedShooterArea){ setStatus('シューターエリアを選択してください', 'ng'); return; }
+      if(!state.selectedResult){ setStatus('結果を選択してください', 'ng'); return; }
+      if(!state.selectedCourse9){ setStatus('コースを選択してください', 'ng'); return; }
 
-      $('sendBtn').disabled = true;
+      setButtonBusy('sendBtn', true, '送信中…', '送信');
       setStatus('送信しています…');
 
       try{
-        const res = await apiJsonp({
+        const res = await apiWrite({
           action:'addShot',
           date,
           sessionId,
@@ -922,38 +1137,86 @@
 
         if(!res.ok) throw new Error(res.error || '送信に失敗しました');
 
-        await loadRecentShots();
-        setStatus(`送信OK（${res.shotId}）`, 'ok');
+        // 保存成功を先に確定。再読込は別処理。
         resetSteps();
+        setStatus(`送信OK${res.shotId ? `（${res.shotId}）` : ''}`, 'ok');
+        refreshRecentQuietly();
       }catch(err){
-        setStatus(err.message, 'ng');
+        if(err.code === 'TIMEOUT'){
+          setStatus('通信が遅れています。二重送信せず、最近のデータまたはデータ一覧で保存結果を確認してください。', 'ng');
+        }else{
+          setStatus(err.message || '送信に失敗しました', 'ng');
+        }
       }finally{
-        $('sendBtn').disabled = false;
+        setButtonBusy('sendBtn', false, '送信中…', '送信');
       }
     }
 
     async function undoLast(){
       const sessionId = $('sessionSelect').value;
-      const inputBy = $('inputBy').value.trim() || 'unknown';
+      const inputBy = $('inputBy').value.trim();
 
       if(!sessionId){
         setStatus('セッションを選択してください', 'ng');
         return;
       }
+      if(!inputBy){
+        setStatus('取り消し者を記録するため、入力者名を入力してください', 'ng');
+        return;
+      }
 
+      setButtonBusy('undoBtn', true, '取り消し中…', '直前取り消し');
       setStatus('直前データを取り消しています…');
+
       try{
-        const res = await apiJsonp({
+        const res = await apiWrite({
           action:'undoLastShot',
           sessionId,
           deletedBy: inputBy
         });
         if(!res.ok) throw new Error(res.error || '取り消しに失敗しました');
-        await loadRecentShots();
+
         setStatus('直前データを取り消しました', 'ok');
+        refreshRecentQuietly();
       }catch(err){
-        setStatus(err.message, 'ng');
+        if(err.code === 'TIMEOUT'){
+          setStatus('通信が遅れています。二重に取り消さず、最近のデータで結果を確認してください。', 'ng');
+        }else{
+          setStatus(err.message || '取り消しに失敗しました', 'ng');
+        }
+      }finally{
+        setButtonBusy('undoBtn', false, '取り消し中…', '直前取り消し');
       }
+    }
+
+    async function searchShotList(){
+      setButtonBusy('searchShotsBtn', true, '検索中…', 'データを検索');
+      try{
+        await loadShotList();
+      }finally{
+        setButtonBusy('searchShotsBtn', false, '検索中…', 'データを検索');
+      }
+    }
+
+    function resultLabel(result){
+      if(result === 'save') return 'セーブ';
+      if(result === 'goal') return '成功';
+      return result || '';
+    }
+
+    function formatDateValue(value){
+      if(!value) return '';
+      const s = String(value);
+      const m = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+      if(m) return `${m[1]}-${m[2]}-${m[3]}`;
+      return s;
+    }
+
+    function writeErrorMessage(err, what='処理結果'){
+      if(err && err.code === 'TIMEOUT'){
+        return `通信が遅れています。${what}を再確認してください。`;
+      }
+      return (err && err.message) ? err.message : '処理に失敗しました';
     }
 
     function escapeHtml(str){
@@ -965,9 +1228,17 @@
         .replaceAll("'","&#39;");
     }
 
+    function escapeJs(str){
+      return String(str ?? '')
+        .replaceAll('\\','\\\\')
+        .replaceAll("'","\\'")
+        .replaceAll('\n','\\n')
+        .replaceAll('\r','\\r');
+    }
+
     function isTruthyActive(v){
-        const s = String(v ?? '').trim().toLowerCase();
-        return s === 'true' || s === 'active' || s === '1' || s === 'yes';
+      const s = String(v ?? '').trim().toLowerCase();
+      return s === 'true' || s === 'active' || s === '1' || s === 'yes';
     }
 
     function bindTabs(){
@@ -1011,15 +1282,30 @@
       $('createSessionBtn').addEventListener('click', createSession);
       $('sendBtn').addEventListener('click', sendShot);
       $('undoBtn').addEventListener('click', undoLast);
+      $('searchShotsBtn').addEventListener('click', searchShotList);
 
       $('dateInput').addEventListener('change', async () => {
         updateCurrentBox();
-        await loadSessions($('dateInput').value);
+        $('recentShots').innerHTML = '<div class="muted">セッションを読み込み中…</div>';
+        try{
+          await loadSessions($('dateInput').value);
+          updateCurrentBox();
+          await loadRecentShots(true);
+        }catch(err){
+          $('recentShots').innerHTML = '<div class="muted">読み込みに失敗しました</div>';
+          setStatus(err.message || '読み込みに失敗しました', 'ng');
+        }
       });
+
       $('sessionSelect').addEventListener('change', async () => {
         updateCurrentBox();
-        await loadRecentShots();
+        try{
+          await loadRecentShots(true);
+        }catch(err){
+          setStatus(err.message || '最近のデータ取得に失敗しました', 'ng');
+        }
       });
+
       $('goalieSelect').addEventListener('change', updateCurrentBox);
       $('inputBy').addEventListener('input', updateCurrentBox);
 
@@ -1032,16 +1318,30 @@
       bindTabs();
       bindEvents();
 
-      $('dateInput').value = todayStr();
-      $('sessionDate').value = todayStr();
+      const today = todayStr();
+      $('dateInput').value = today;
+      $('sessionDate').value = today;
+
+      // データ一覧は当日のデータを探しやすいよう、初期範囲を今日にする。
+      $('listFrom').value = today;
+      $('listTo').value = today;
 
       try{
         setStatus('初期読み込み中…');
-        await apiJsonp({ action:'ping' });
-        await loadGoalies();
-        await loadMenus();
-        await loadSessions(todayStr(), '');
+
+        const ping = await apiRead({ action:'ping' });
+        if(!ping.ok) throw new Error(ping.error || 'API接続に失敗しました');
+
+        // 独立したマスタ読み込みは並列化して初期表示を短縮。
+        await Promise.all([loadGoalies(), loadMenus()]);
+        await loadSessions(today, '');
         updateCurrentBox();
+
+        // 最近のデータは1回だけ取得。失敗してもアプリ全体の初期化失敗にはしない。
+        try{
+          await loadRecentShots(true);
+        }catch(err){}
+
         setStatus('準備完了', 'ok');
       }catch(err){
         setStatus(err.message || '初期化に失敗しました', 'ng');
