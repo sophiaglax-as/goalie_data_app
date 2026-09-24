@@ -164,6 +164,8 @@
     .btn:disabled{
       opacity:.45;
       cursor:not-allowed;
+      filter:saturate(.55);
+      transform:none;
     }
     .btnRow{
       display:grid;
@@ -434,7 +436,7 @@
       <div class="row">
         <div>
           <label for="sessionTitle">セッション名</label>
-          <input id="sessionTitle" type="text" placeholder="例：午前練習 / 6on6 / 1on1" />
+          <input id="sessionTitle" type="text" placeholder="例：トップ / サブ / 1年生" />
         </div>
       </div>
 
@@ -471,7 +473,7 @@
       <div class="row two">
         <div>
           <label for="menuName">メニュー名</label>
-          <input id="menuName" type="text" placeholder="例：6on6" />
+          <input id="menuName" type="text" placeholder="例：1on1" />
         </div>
         <div>
           <label for="groupType">種別</label>
@@ -853,12 +855,20 @@
     }
     window.deleteShotFromList = deleteShotFromList;
 
+    function setButtonBusy(buttonId, busy, busyText, normalText){
+      const btn = $(buttonId);
+      if(!btn) return;
+      btn.disabled = busy;
+      btn.textContent = busy ? busyText : normalText;
+    }
+
     async function addGoalie(){
       const name = $('goalieName').value.trim();
       if(!name){
         setStatus('ゴーリー名を入力してください', 'ng');
         return;
       }
+      setButtonBusy('addGoalieBtn', true, '追加中…', '追加');
       setStatus('ゴーリーを追加しています…');
       try{
         const res = await apiJsonp({ action:'addGoalie', name });
@@ -868,6 +878,8 @@
         setStatus('ゴーリーを追加しました', 'ok');
       }catch(err){
         setStatus(err.message, 'ng');
+      }finally{
+        setButtonBusy('addGoalieBtn', false, '追加中…', '追加');
       }
     }
 
@@ -890,6 +902,7 @@
         setStatus('メニュー名を入力してください', 'ng');
         return;
       }
+      setButtonBusy('addMenuBtn', true, '追加中…', '追加');
       setStatus('メニューを追加しています…');
       try{
         const res = await apiJsonp({ action:'addMenu', menuName, groupType });
@@ -899,6 +912,8 @@
         setStatus('メニューを追加しました', 'ok');
       }catch(err){
         setStatus(err.message, 'ng');
+      }finally{
+        setButtonBusy('addMenuBtn', false, '追加中…', '追加');
       }
     }
 
@@ -938,6 +953,7 @@
         return;
       }
 
+      setButtonBusy('createSessionBtn', true, '作成中…', 'セッション作成');
       setStatus('セッションを作成しています…');
       try{
         const res = await apiJsonp({ action:'createSession', date, menuId, title, note });
@@ -958,6 +974,8 @@
         setStatus('セッションを作成しました', 'ok');
       }catch(err){
         setStatus(err.message, 'ng');
+      }finally{
+        setButtonBusy('createSessionBtn', false, '作成中…', 'セッション作成');
       }
     }
 
@@ -1015,7 +1033,7 @@
         return;
       }
 
-      $('sendBtn').disabled = true;
+      setButtonBusy('sendBtn', true, '送信中…', '送信');
       setStatus('送信しています…');
 
       try{
@@ -1041,7 +1059,7 @@
       }catch(err){
         setStatus(err.message, 'ng');
       }finally{
-        $('sendBtn').disabled = false;
+        setButtonBusy('sendBtn', false, '送信中…', '送信');
       }
     }
 
@@ -1054,6 +1072,7 @@
         return;
       }
 
+      setButtonBusy('undoBtn', true, '取り消し中…', '直前取り消し');
       setStatus('直前データを取り消しています…');
       try{
         const res = await apiJsonp({
@@ -1066,6 +1085,17 @@
         setStatus('直前データを取り消しました', 'ok');
       }catch(err){
         setStatus(err.message, 'ng');
+      }finally{
+        setButtonBusy('undoBtn', false, '取り消し中…', '直前取り消し');
+      }
+    }
+
+    async function searchShotList(){
+      setButtonBusy('searchShotsBtn', true, '検索中…', 'データを検索');
+      try{
+        await loadShotList();
+      }finally{
+        setButtonBusy('searchShotsBtn', false, '検索中…', 'データを検索');
       }
     }
 
@@ -1124,7 +1154,7 @@
       $('createSessionBtn').addEventListener('click', createSession);
       $('sendBtn').addEventListener('click', sendShot);
       $('undoBtn').addEventListener('click', undoLast);
-      $('searchShotsBtn').addEventListener('click', loadShotList);
+      $('searchShotsBtn').addEventListener('click', searchShotList);
 
       $('dateInput').addEventListener('change', async () => {
         updateCurrentBox();
